@@ -51,16 +51,16 @@ export default function(){
                 skills: ["ying_yuansu","ying_renjieli","ying_shenyuan"],
                 img: "extension/原神拓展/ying_gs.jpg",
                 hujia: 0,
+                dieAudios: ["ext:原神拓展/audio/die/ying_gs.mp3"],
             },
             qiuqiuren: {
-                sex: "male",
+                sex: "none",
                 group: "qun",
                 hp: 4,
                 maxHp: 4,
                 skills: [],
                 img: "extension/原神拓展/qiuqiuren.jpg",
                 hujia: 0,
-                dieAudios: ["ext:原神拓展/audio/die/qiuqiuren.mp3"],
             },
         },
         characterTitle: {
@@ -885,12 +885,14 @@ export default function(){
                     }
                     player._ying_yuansu_ing = false;
                 },
-                group: ["ying_yuansu_huoyin", "ying_yuansu_baozi", "ying_yuansu_baozi_clear"],
+                group: ["ying_yuansu_huoyin","ying_yuansu_baozi","ying_yuansu_baozi_clear"],
                 "skill_id": "ying_yuansu",
                 "_priority": 0,
             },
             "ying_yuansu_huoyin": {
-                trigger: { global: "phaseBefore" },
+                trigger: {
+                    global: "phaseBefore",
+                },
                 forced: true,
                 popup: false,
                 filter: function(event, player) {
@@ -907,7 +909,9 @@ export default function(){
                 "_priority": 0,
             },
             "ying_yuansu_baozi": {
-                trigger: { global: "roundEnd" },
+                trigger: {
+                    global: "roundEnd",
+                },
                 forced: true,
                 popup: false,
                 filter: function(event, player) {
@@ -926,7 +930,9 @@ export default function(){
                 "_priority": 0,
             },
             "ying_yuansu_baozi_clear": {
-                trigger: { global: "damageEnd" },
+                trigger: {
+                    global: "damageEnd",
+                },
                 forced: true,
                 popup: false,
                 filter: function(event, player) {
@@ -1125,7 +1131,9 @@ export default function(){
                 limited: true,
                 mark: true,
                 skillAnimation: true,
-                trigger: { player: "dyingBegin" },
+                trigger: {
+                    player: "dyingBegin",
+                },
                 filter: function(event, player) {
                     return !player.storage.ying_shenyuan;
                 },
@@ -1307,5 +1315,5 @@ export default function(){
     diskURL: "",
     forumURL: "",
     version: "1.0",
-},files:{"character":["shen_xiao.jpg","hutao.jpg","zhongli.jpg","ying_gs.jpg"],"card":[],"skill":[],"audio":[]}} 
+},files:{"character":["hutao.jpg","ying_gs.jpg","shen_xiao.jpg","zhongli.jpg","qiuqiuren.jpg"],"card":[],"skill":[],"audio":[]}} 
 };

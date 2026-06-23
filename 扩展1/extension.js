@@ -19,6 +19,7 @@ export default function(){
                 hujia: 0,
                 skills: ["ext1_mocansi","ext1_mofozong"],
                 img: "extension/扩展1/界笮融.jpg",
+                dieAudios: ["ext:扩展1/audio/die/界笮融.mp3"],
             },
             "曹纯将灵": {
                 sex: "male",
@@ -35,6 +36,8 @@ export default function(){
                 hp: 4,
                 maxHp: 4,
                 skills: ["re_dclingxi","re_dczhifou"],
+                img: "extension/扩展1/re_caoxian.jpg",
+                hujia: 0,
             },
         },
         translate: {
@@ -385,7 +388,7 @@ export default function(){
             },
             "re_dclingxi": {
                 trigger: {
-                    player: ["phaseUseBegin", "phaseUseEnd"],
+                    player: ["phaseUseBegin","phaseUseEnd"],
                     global: "roundStart",
                 },
                 direct: true,
@@ -401,10 +404,7 @@ export default function(){
                         .forResult();
                     if (result.bool) {
                         player.logSkill("re_dclingxi");
-                        player._re_dclingxi_placing = true;
                         player.addToExpansion(result.cards, player, "give").gaintag.add("re_dclingxi");
-                        await game.delayx();
-                        player._re_dclingxi_placing = false;
                     }
                 },
                 group: "re_dclingxi_effect",
@@ -423,11 +423,10 @@ export default function(){
             "re_dclingxi_effect": {
                 trigger: {
                     player: "loseAfter",
-                    global: ["equipAfter", "addJudgeAfter", "gainAfter", "loseAsyncAfter"],
+                    global: ["equipAfter","addJudgeAfter","gainAfter","loseAsyncAfter"],
                 },
                 forced: true,
                 filter: function(event, player) {
-                    if (player._re_dclingxi_placing) return false;
                     var num = 2 * player.getExpansions("re_dclingxi").reduce(function(list, card) {
                         return list.add(get.suit(card, false));
                     }, []).length;
@@ -462,11 +461,18 @@ export default function(){
                 "_priority": 0,
             },
             "re_dczhifou": {
-                trigger: { player: "loseAfter" },
+                trigger: {
+                    player: "loseAfter",
+                },
                 direct: true,
                 filter: function(event, player) {
                     if (player._re_dczhifou_ing) return false;
-                    if (player._re_dclingxi_placing) return false;
+                    // 排除「灵犀」主动放翼（以及知否选项①把牌置为翼）造成的失去牌：
+                    // addToExpansion 产生的 lose 事件 type 恒为 "loseToExpansion"、getlx===false
+                    // （content.js:10770 源码实证）。放翼失去的是手牌，gaintag_map 不含
+                    // re_dclingxi，故不能用 gaintag 判断，改用 type 精确匹配。
+                    // 装备(type:equip)/判定(type:addJudge) 不会误伤。
+                    if (event.name == "lose" && event.type == "loseToExpansion") return false;
                     var num = player.getHistory("useSkill", function(evt) {
                         return evt.skill == "re_dczhifou";
                     }).length + 1;
@@ -581,5 +587,5 @@ export default function(){
     diskURL: "",
     forumURL: "",
     version: "1.2",
-},files:{"character":["界笮融.jpg","曹纯将灵.jpg"],"card":[],"skill":[],"audio":[]}} 
+},files:{"character":["界笮融.jpg","曹纯将灵.jpg","re_caoxian.jpg"],"card":[],"skill":[],"audio":[]}} 
 };
