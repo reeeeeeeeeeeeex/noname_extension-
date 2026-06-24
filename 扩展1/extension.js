@@ -18,7 +18,7 @@ export default function(){
                 maxHp: 4,
                 hujia: 0,
                 skills: ["ext1_mocansi","ext1_mofozong"],
-                img: "extension/扩展1/界笮融.jpg",
+                img: "extension/扩展1/mozarong.jpg",
                 dieAudios: ["ext:扩展1/audio/die/界笮融.mp3"],
             },
             "曹纯将灵": {
@@ -27,7 +27,7 @@ export default function(){
                 hp: 4,
                 maxHp: 4,
                 skills: ["kuanglan","jielve"],
-                img: "extension/扩展1/曹纯将灵.jpg",
+                img: "extension/扩展1/caochun.jpg",
                 dieAudios: ["ext:扩展1/audio/die/曹纯将灵.mp3"],
             },
             "re_caoxian": {
@@ -586,6 +586,6 @@ export default function(){
     author: "nihility",
     diskURL: "",
     forumURL: "",
-    version: "1.2",
-},files:{"character":["界笮融.jpg","曹纯将灵.jpg","re_caoxian.jpg"],"card":[],"skill":[],"audio":[]}} 
+    version: "1.4.1",
+},files:{"character":["mozarong.jpg","caochun.jpg","re_caoxian.jpg"],"card":[],"skill":[],"audio":[]}} 
 };
