@@ -38,6 +38,7 @@ export default function(){
                 skills: ["re_dclingxi","re_dczhifou"],
                 img: "extension/扩展1/re_caoxian.jpg",
                 hujia: 0,
+                dieAudios: ["ext:扩展1/audio/die/re_caoxian.mp3"],
             },
             "jl_zhangqiying": {
                 sex: "female",
@@ -45,8 +46,8 @@ export default function(){
                 hp: 4,
                 maxHp: 4,
                 skills: ["jl_falu","jl_dianhua","jl_zhenyi"],
-                img: "extension/扩展1/zhangqiying.jpg",
-                dieAudios: ["ext:扩展1/audio/die/jl_zhangqiying.mp3"],
+                img: "extension/扩展1/jl_zhangqiying.jpg",
+                hujia: 0,
             },
         },
         translate: {
@@ -257,7 +258,7 @@ export default function(){
                 "skill_id": "ext1_mofozong",
                 "_priority": 0,
             },
-            jl_shanjia: {
+            "jl_shanjia": {
                 audio: "ext:扩展1:2",
                 shaRelated: true,
                 trigger: {
@@ -337,7 +338,7 @@ export default function(){
                 "skill_id": "jl_shanjia_effect_damage",
                 "_priority": 0,
             },
-            jl_xiaorui: {
+            "jl_xiaorui": {
                 audio: "ext:扩展1:2",
                 trigger: {
                     source: "damageBegin",
@@ -463,7 +464,7 @@ export default function(){
             },
             "jl_zhenyi": {
                 audio: "ext:扩展1:2",
-                group: ["jl_zhenyi_damage", "jl_zhenyi_defend"],
+                group: ["jl_zhenyi_damage","jl_zhenyi_defend"],
                 "skill_id": "jl_zhenyi",
                 "_priority": 0,
             },
@@ -725,15 +726,15 @@ export default function(){
             "ext1_mocansi_info": "准备阶段，你可以回复1点体力，然后你可以令一名其他角色回复1点体力并视为对其使用三张【杀】/【决斗】/【火攻】（每次均可自由选择）。在此期间，你每造成1点伤害便摸两张牌。",
             "ext1_mofozong": "魔佛宗",
             "ext1_mofozong_info": "锁定技，其他角色获得手牌后，若其手牌数大于7，其将X张手牌置于其武将牌上（X为其手牌数-7）。然后若其武将牌上的“魔佛宗”牌数不小于7，你选择一项：⒈获得这些牌并令其回复1点体力；⒉令其失去1点体力。",
-            jl_shanjia: "缮甲",
+            "jl_shanjia": "缮甲",
             "jl_shanjia_info": "每名角色的回合开始时，你可以摸2-4张牌（自选）；若此时是你的回合，你可以视为使用一张无视距离、不可响应且伤害增加1-2点（自选）的【杀】。",
-            jl_xiaorui: "骁锐",
+            "jl_xiaorui": "骁锐",
             "jl_xiaorui_info": "每回合限四次，当你造成伤害时，你可以先随机获得受伤目标2-4张牌（自选张数），然后令此伤害增加2-4点（自选点数）。",
-            jl_falu: "法箓",
+            "jl_falu": "法箓",
             "jl_falu_info": "结束阶段，你可以随机获得牌堆中四种花色的牌各一张。若你因此获得了点数相同的牌，你回复1点体力并对至多两名其他角色各造成1点伤害。",
-            jl_dianhua: "点化",
+            "jl_dianhua": "点化",
             "jl_dianhua_info": "准备阶段，你可以观看牌堆顶的四张牌，然后以任意顺序放回牌堆顶。",
-            jl_zhenyi: "真仪",
+            "jl_zhenyi": "真仪",
             "jl_zhenyi_info": "当你对其他角色造成伤害时，你可以令此伤害+1，然后随机获得其一张牌；当你受到其他角色造成的伤害时，你可以防止此伤害，然后你随机弃置伤害来源两张牌。（每个效果每回合各限触发2次）",
             "re_dclingxi": "灵犀",
             "re_dclingxi_info": "每轮开始时、出牌阶段开始和结束时，你可以将至多X张牌称为「翼」置于你的武将牌上（X为你的体力上限）。当你失去武将牌上的「翼」时，你将手牌数调整至Y张（Y为你武将牌上的「翼」所含有的花色数的两倍）。",
@@ -745,6 +746,6 @@ export default function(){
     author: "nihility",
     diskURL: "",
     forumURL: "",
-    version: "1.4.9",
-},files:{"character":["mozarong.jpg","caochun.jpg","re_caoxian.jpg","zhangqiying.jpg"],"card":[],"skill":[],"audio":[]}} 
+    version: "1.4.10",
+},files:{"character":["mozarong.jpg","caochun.jpg","re_caoxian.jpg","jl_zhangqiying.jpg"],"card":[],"skill":[],"audio":[]}} 
 };
