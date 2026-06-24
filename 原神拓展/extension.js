@@ -6,8 +6,8 @@ export default function(){
 },content:function(config,pack){
 
 },prepare:function(){
-		game.addGroup("liyue", "璃月", "璃月势力", { color: "#FFB443" });
-		game.addGroup("lvren", "旅者", "旅者势力", { color: "#F5E6C8" });
+		game.addGroup("liyue", "璃", "璃月势力", { color: "#FFB443" });
+		game.addGroup("lvren", "旅", "旅者势力", { color: "#F5E6C8" });
 	},precontent:function(){
 
 },help:{},config:{},package:{
@@ -92,11 +92,11 @@ export default function(){
             "group_liyue": "璃月",
             "group_liyue_bg": "璃",
             liyueColor: "#FFB443",
-            liyue: "璃月",
+            liyue: "璃",
             "group_lvren": "旅者",
             "group_lvren_bg": "旅",
             lvrenColor: "#F5E6C8",
-            lvren: "旅者",
+            lvren: "旅",
             "原神拓展": "原神拓展",
         },
     },
@@ -1314,6 +1314,6 @@ export default function(){
     author: "nihility",
     diskURL: "",
     forumURL: "",
-    version: "1.0",
+    version: "1.1",
 },files:{"character":["hutao.jpg","ying_gs.jpg","shen_xiao.jpg","zhongli.jpg","qiuqiuren.jpg"],"card":[],"skill":[],"audio":[]}} 
 };
