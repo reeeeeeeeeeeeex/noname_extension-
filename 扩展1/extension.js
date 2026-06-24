@@ -24,8 +24,8 @@ export default function(){
             "jl_caochun": {
                 sex: "male",
                 group: "wei",
-                hp: 4,
-                maxHp: 4,
+                hp: 5,
+                maxHp: 5,
                 skills: ["jl_shanjia","jl_xiaorui"],
                 img: "extension/扩展1/caochun.jpg",
                 dieAudios: ["ext:扩展1/audio/die/jl_caochun.mp3"],
@@ -48,6 +48,16 @@ export default function(){
                 skills: ["jl_falu","jl_dianhua","jl_zhenyi"],
                 img: "extension/扩展1/jl_zhangqiying.jpg",
                 hujia: 0,
+                dieAudios: ["ext:扩展1/audio/die/jl_zhangqiying.mp3"],
+            },
+            "jl_zhaoxiang": {
+                sex: "female",
+                group: "shu",
+                hp: 5,
+                maxHp: 5,
+                skills: ["jl_fanghun","jl_fuhan"],
+                img: "extension/扩展1/jl_zhaoxiang.jpg",
+                hujia: 0,
             },
         },
         translate: {
@@ -59,6 +69,8 @@ export default function(){
             "re_caoxian_prefix": "界",
             "jl_zhangqiying": "将灵张琪瑛",
             "jl_zhangqiying_prefix": "将灵",
+            "jl_zhaoxiang": "将灵赵襄",
+            "jl_zhaoxiang_prefix": "将灵",
             "扩展1": "扩展1",
         },
     },
@@ -540,6 +552,156 @@ export default function(){
                 "skill_id": "jl_zhenyi_defend",
                 "_priority": 0,
             },
+            "jl_fanghun": {
+                audio: "ext:扩展1:2",
+                trigger: {
+                    global: ["cardsDiscardAfter"],
+                },
+                usable: 3,
+                getCards: function(event, player) {
+                    var evt = event.getParent();
+                    if (!evt || evt.name !== "orderingDiscard") return [];
+                    var evt2 = evt.relatedEvent || evt.getParent();
+                    if (!evt2 || (evt2.name != "useCard" && evt2.name != "respond")) return [];
+                    if (evt2.player != player) return [];
+                    if (!evt2.card) return [];
+                    var n = get.name(evt2.card, player);
+                    if (n != "sha" && n != "shan") return [];
+                    if (!event.getd) return [];
+                    var d = event.getd();
+                    return (d && d.length) ? d.filter(function(card) {
+                        return get.name(card, player) == "sha" || get.name(card, player) == "shan";
+                    }) : [];
+                },
+                filter: function(event, player) {
+                    return lib.skill.jl_fanghun.getCards(event, player).length > 0;
+                },
+                prompt: function(event, player) {
+                    var evt = event.getParent();
+                    var evt2 = evt ? (evt.relatedEvent || evt.getParent()) : null;
+                    return "是否发动「芳魂」获得" + (evt2 && evt2.card ? get.translation(evt2.card) : "此牌") + "？";
+                },
+                check: function(event, player) {
+                    return true;
+                },
+                async content(event, trigger, player) {
+                    var cards = lib.skill.jl_fanghun.getCards(trigger, player);
+                    if (cards && cards.length) {
+                        await player.gain(cards, "gain2");
+                        player.logSkill("jl_fanghun");
+                    }
+                    if (!game.hasPlayer(function(current) { return current != player; })) return;
+                    var result = await player.chooseTarget("芳魂：弃置一名其他角色至多3张牌", true, lib.filter.notMe)
+                        .set("ai", function(target) {
+                            return -get.attitude(_status.event.player, target);
+                        }).forResult();
+                    if (!result.bool) return;
+                    var target = result.targets[0];
+                    player.line(target, "fire");
+                    var maxDiscard = Math.min(3, target.countCards("he"));
+                    if (maxDiscard > 0) {
+                        var r2 = await player.choosePlayerCard(target, "he", true, [1, maxDiscard], "弃置" + get.translation(target) + "的牌")
+                            .set("ai", function(card) {
+                                return -get.value(card);
+                            }).forResult();
+                        if (r2.bool && r2.cards && r2.cards.length) {
+                            target.discard(r2.cards);
+                        }
+                    }
+                    var r3 = await player.chooseControl("1张","2张","3张").set("prompt", "芳魂：选择摸牌数量").set("ai", function() { return 2; }).forResult();
+                    var drawNum = r3.index + 1;
+                    await player.draw(drawNum);
+                    target.damage(1, player);
+                },
+                ai: {
+                    threaten: 2,
+                },
+                "skill_id": "jl_fanghun",
+                "_priority": 0,
+            },
+            "jl_fuhan": {
+                audio: "ext:扩展1:2",
+                trigger: {
+                    global: "damageEnd",
+                },
+                usable: 3,
+                filter: function(event, player) {
+                    return (event.source == player || event.player == player) && player.isIn();
+                },
+                prompt: function(event, player) {
+                    var gained = Array.isArray(player.storage.jl_fuhan_skills) ? player.storage.jl_fuhan_skills : [];
+                    if (gained.length >= 3) {
+                        return "是否发动「扶汉」回复1点体力并摸两张牌？（你已因此获得3个技能）";
+                    }
+                    return "是否发动「扶汉」随机获得一个蜀国武将技能直到下回合结束？";
+                },
+                check: function(event, player) {
+                    return true;
+                },
+                async content(event, trigger, player) {
+                    if (!Array.isArray(player.storage.jl_fuhan_skills)) player.storage.jl_fuhan_skills = [];
+                    var gained = player.storage.jl_fuhan_skills;
+                    // 已因此获得3个技能：改为回复1点体力并摸两张牌，不再获得技能（直到下回合开始由 reset 清零）
+                    if (gained.length >= 3) {
+                        player.logSkill("jl_fuhan");
+                        player.recover();
+                        await player.draw(2);
+                        return;
+                    }
+                    var pool = [];
+                    for (var name in lib.character) {
+                        var info = lib.character[name];
+                        if (!info || info[1] != "shu") continue;
+                        var skills = info[3];
+                        if (!skills || !skills.length) continue;
+                        for (var i = 0; i < skills.length; i++) {
+                            var skill = skills[i];
+                            if (gained.includes(skill)) continue;  // 本轮已获得过的不再随机到
+                            if (player.hasSkill(skill)) continue;  // 当前已持有的不重复获得
+                            var sinfo = get.info(skill);
+                            if (!sinfo) continue;
+                            if (sinfo.zhuSkill || sinfo.limited || sinfo.juexingji || sinfo.charlotte) continue;
+                            if (sinfo.enable && !sinfo.trigger) continue;
+                            pool.add(skill);
+                        }
+                    }
+                    if (!pool.length) {
+                        player.logSkill("jl_fuhan");
+                        player.recover();
+                        await player.draw(2);
+                        return;
+                    }
+                    var skill = pool[Math.floor(Math.random() * pool.length)];
+                    player.logSkill("jl_fuhan");
+                    game.log(player, "获得了技能", "#g【" + get.translation(skill) + "】");
+                    player.addTempSkill(skill, { player: "phaseBegin" });
+                    player.storage.jl_fuhan_skills.add(skill);
+                },
+                group: "jl_fuhan_reset",
+                ai: {
+                    threaten: 1.5,
+                },
+                "skill_id": "jl_fuhan",
+                "_priority": 0,
+            },
+            "jl_fuhan_reset": {
+                trigger: {
+                    player: "phaseBegin",
+                },
+                forced: true,
+                popup: false,
+                silent: true,
+                filter: function(event, player) {
+                    return Array.isArray(player.storage.jl_fuhan_skills) && player.storage.jl_fuhan_skills.length > 0;
+                },
+                async content(event, trigger, player) {
+                    player.storage.jl_fuhan_skills = [];
+                },
+                sub: true,
+                sourceSkill: "jl_fuhan",
+                "skill_id": "jl_fuhan_reset",
+                "_priority": 0,
+            },
             "re_dclingxi": {
                 trigger: {
                     player: ["phaseUseBegin","phaseUseEnd"],
@@ -736,6 +898,10 @@ export default function(){
             "jl_dianhua_info": "准备阶段，你可以观看牌堆顶的四张牌，然后以任意顺序放回牌堆顶。",
             "jl_zhenyi": "真仪",
             "jl_zhenyi_info": "当你对其他角色造成伤害时，你可以令此伤害+1，然后随机获得其一张牌；当你受到其他角色造成的伤害时，你可以防止此伤害，然后你随机弃置伤害来源两张牌。（每个效果每回合各限触发2次）",
+            "jl_fanghun": "芳魂",
+            "jl_fanghun_info": "当你使用或打出的【杀】或【闪】进入弃牌堆时，你可以获得此牌，然后你可以弃置一名其他角色至多3张牌，并摸1~3张牌，再对其造成1点伤害。（每回合限触发3次）",
+            "jl_fuhan": "扶汉",
+            "jl_fuhan_info": "当你造成或受到伤害后，你可以随机获得一个蜀国武将技能直到你的下回合结束。若你已因此获得3个技能，则改为回复1点体力并摸两张牌。（每回合限触发3次）",
             "re_dclingxi": "灵犀",
             "re_dclingxi_info": "每轮开始时、出牌阶段开始和结束时，你可以将至多X张牌称为「翼」置于你的武将牌上（X为你的体力上限）。当你失去武将牌上的「翼」时，你将手牌数调整至Y张（Y为你武将牌上的「翼」所含有的花色数的两倍）。",
             "re_dczhifou": "知否",
@@ -746,6 +912,6 @@ export default function(){
     author: "nihility",
     diskURL: "",
     forumURL: "",
-    version: "1.4.10",
-},files:{"character":["mozarong.jpg","caochun.jpg","re_caoxian.jpg","jl_zhangqiying.jpg"],"card":[],"skill":[],"audio":[]}} 
+    version: "1.5.0",
+},files:{"character":["jl_zhangqiying.jpg","re_caoxian.jpg","jl_zhaoxiang.jpg"],"card":[],"skill":[],"audio":[]}} 
 };
