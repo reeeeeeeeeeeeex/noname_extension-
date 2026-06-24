@@ -1260,6 +1260,9 @@ export default function(){
                 },
                 content: function() {
                     trigger.player.reinit(trigger.player.name, "qiuqiuren");
+                    // reinit 不更新 group，手动设为丘丘人的「群」
+                    trigger.player.group = lib.character.qiuqiuren[1];
+                    trigger.player.update();
                 },
                 "skill_id": "ying_shenyuanliliang_change",
                 "_priority": 0,
@@ -1314,6 +1317,6 @@ export default function(){
     author: "nihility",
     diskURL: "",
     forumURL: "",
-    version: "1.1",
+    version: "1.2",
 },files:{"character":["hutao.jpg","ying_gs.jpg","shen_xiao.jpg","zhongli.jpg","qiuqiuren.jpg"],"card":[],"skill":[],"audio":[]}} 
 };
