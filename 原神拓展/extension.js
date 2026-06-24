@@ -117,21 +117,21 @@ export default function(){
                 filter: function(event, player) {
                     return event.player != player;
                 },
-                direct: true,
+                prompt: function(event, player) {
+                    return "是否发动「除魔」令对" + get.translation(event.player) + "造成的伤害+1？";
+                },
+                check: function(event, player) {
+                    return true;
+                },
                 init: function(player) {
                     player.addSkill('chumo_trick');
                 },
                 onremove: function(player) {
                     player.removeSkill('chumo_trick');
                 },
-                content: function() {
-                    'step 0'
-                    player.chooseBool('是否发动【除魔】令伤害+1？').set('ai', function() { return true; });
-                    'step 1'
-                    if (result.bool) {
-                        trigger.num++;
-                        player.logSkill('chumo');
-                    }
+                async content(event, trigger, player) {
+                    trigger.num++;
+                    player.logSkill('chumo');
                 },
                 ai: {
                     threaten: 1.5,
@@ -143,23 +143,25 @@ export default function(){
                 trigger: {
                     player: "useCardAfter",
                 },
-                direct: true,
+                prompt: function(event, player) {
+                    return "是否发动「除魔」令" + get.translation(event.card.name) + "额外结算一次？";
+                },
+                check: function(event, player) {
+                    return true;
+                },
                 filter: function(event, player) {
                     if (player.storage.chumo_locked) return false;
                     if (event.card.name == 'wuxie') return false;
                     return get.type(event.card) == 'trick';
                 },
-                content: function() {
-                    'step 0'
-                    player.chooseBool('是否发动【除魔】令' + get.translation(trigger.card.name) + '额外结算一次？').set('ai', function() { return true; });
-                    'step 1'
-                    if (result.bool) {
+                async content(event, trigger, player) {
+                    try {
                         player.storage.chumo_locked = true;
                         player.logSkill('chumo');
-                        player.chooseUseTarget({name: trigger.card.name, isCard: true}, false, 'nodistance');
+                        await player.chooseUseTarget({name: trigger.card.name, isCard: true}, false, 'nodistance');
+                    } finally {
+                        delete player.storage.chumo_locked;
                     }
-                    'step 2'
-                    delete player.storage.chumo_locked;
                 },
                 "skill_id": "chumo_trick",
                 "_priority": 0,
@@ -171,11 +173,9 @@ export default function(){
                 filter: function(event, player) {
                     return player.hp > 0;
                 },
-                content: function() {
-                    'step 0'
-                    player.loseHp(1);
-                    'step 1'
-                    player.draw(5);
+                async content(event, trigger, player) {
+                    await player.loseHp(1);
+                    await player.draw(5);
                     player.gainMaxHp(1);
                     player.addTempSkill('nuowu_buff', {player: 'phaseBegin'});
                     player.logSkill('nuowu');
@@ -280,13 +280,11 @@ export default function(){
                 trigger: {
                     player: "dyingBegin",
                 },
-                content: function() {
-                    'step 0'
+                async content(event, trigger, player) {
                     player.recover(player.maxHp - player.hp);
-                    player.chooseTarget('请选择【动情】的目标', true).set('ai', function(target) {
+                    var result = await player.chooseTarget('请选择【动情】的目标', true).set('ai', function(target) {
                         return get.attitude(player, target);
-                    });
-                    'step 1'
+                    }).forResult();
                     if (result.bool) {
                         player.storage.dongqing_target = result.targets[0];
                         player.removeSkill('yezhang');
@@ -341,7 +339,7 @@ export default function(){
                     if (event.player == player && !player.storage.dongqing_g2) return true;
                     return false;
                 },
-                content: function() {
+                async content(event, trigger, player) {
                     var count = trigger.cards.length;
                     if (trigger.player == player.storage.dongqing_target) {
                         player.storage.dongqing_g1 = true;
@@ -361,7 +359,7 @@ export default function(){
                 },
                 forced: true,
                 popup: false,
-                content: function() {
+                async content(event, trigger, player) {
                     delete player.storage.dongqing_g1;
                     delete player.storage.dongqing_g2;
                 },
@@ -376,19 +374,20 @@ export default function(){
                     var t = player.storage.dongqing_target;
                     return t && event.player == t && event.num > 0 && player.isAlive();
                 },
-                content: function() {
-                    'step 0'
-                    player.chooseBool('是否发动【动情】代替' + get.translation(trigger.player) + '承受伤害？').set('ai', function() { return true; });
-                    'step 1'
-                    if (result.bool) {
-                        var _dmg = trigger.num;
-                        var _src = trigger.source;
-                        trigger.cancel();
-                        player.logSkill('dongqing');
-                        player.damage(_dmg);
-                        if (_src && _src.isIn() && _src != player) {
-                            _src.damage(_dmg);
-                        }
+                prompt: function(event, player) {
+                    return "是否发动「动情」代替" + get.translation(event.player) + "承受伤害？";
+                },
+                check: function(event, player) {
+                    return true;
+                },
+                async content(event, trigger, player) {
+                    var _dmg = trigger.num;
+                    var _src = trigger.source;
+                    trigger.cancel();
+                    player.logSkill('dongqing');
+                    await player.damage(_dmg);
+                    if (_src && _src.isIn() && _src != player) {
+                        await _src.damage(_dmg);
                     }
                 },
                 "skill_id": "dongqing_damage",
@@ -403,16 +402,16 @@ export default function(){
                     var t = player.storage.dongqing_target;
                     return t && event.player == t && event.hs && event.hs.length > 0;
                 },
-                content: function() {
-                    'step 0'
-                    event._loseCount = trigger.hs.length;
-                    player.chooseBool('是否发动【动情】令' + get.translation(trigger.player) + '摸' + event._loseCount + '张牌？').set('ai', function() { return true; });
-                    'step 1'
-                    if (result.bool) {
-                        player.storage.dongqing_lose_used = game.roundNumber;
-                        trigger.player.draw(event._loseCount);
-                        player.logSkill('dongqing');
-                    }
+                prompt: function(event, player) {
+                    return "是否发动「动情」令" + get.translation(event.player) + "摸" + event.hs.length + "张牌？";
+                },
+                check: function(event, player) {
+                    return true;
+                },
+                async content(event, trigger, player) {
+                    player.storage.dongqing_lose_used = game.roundNumber;
+                    await trigger.player.draw(trigger.hs.length);
+                    player.logSkill('dongqing');
                 },
                 "skill_id": "dongqing_lose",
                 "_priority": 0,
@@ -427,7 +426,7 @@ export default function(){
                     var t = player.storage.dongqing_target;
                     return t && event.player == t;
                 },
-                content: function() {
+                async content(event, trigger, player) {
                     player.lose(player.getCards('he'), true);
                     player.removeSkill('dongqing');
                 },
@@ -1317,6 +1316,6 @@ export default function(){
     author: "nihility",
     diskURL: "",
     forumURL: "",
-    version: "1.2",
+    version: "1.3",
 },files:{"character":["hutao.jpg","ying_gs.jpg","shen_xiao.jpg","zhongli.jpg","qiuqiuren.jpg"],"card":[],"skill":[],"audio":[]}} 
 };
