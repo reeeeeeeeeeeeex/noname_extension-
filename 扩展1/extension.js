@@ -465,24 +465,25 @@ export default function(){
                     player: "phaseZhunbeiBegin",
                 },
                 frequent: true,
-                content: function() {
-                    'step 0'
+                async content(event, trigger, player) {
                     var cards = get.cards(4);
-                    event.cards = cards;
-                    player.chooseToMove("点化：将卡牌按任意顺序置于牌堆顶（越靠左越在顶部）", true).set("list", [
-                        ["牌堆顶（上→下）", cards]
-                    ]).set("processAI", function(list) {
+                    var next = player.chooseToMove(true);
+                    next.set("list", [["牌堆顶（上→下）", cards]]);
+                    next.set("prompt", "点化：将卡牌按任意顺序置于牌堆顶（越靠左越在顶部）");
+                    next.processAI = function(list) {
                         var cs = list[0][1].slice();
                         cs.sort(function(a, b) {
                             return get.value(b) - get.value(a);
                         });
                         return [cs];
+                    };
+                    var result = await next.forResult();
+                    var top = (result && result.moved && result.moved[0]) ? result.moved[0] : cards;
+                    top.reverse();
+                    await game.cardsGotoPile(top, ["top_cards", top], function(event2, card) {
+                        if (event2.top_cards.includes(card)) return ui.cardPile.firstChild;
+                        return null;
                     });
-                    'step 1'
-                    var top = (result && result.moved && result.moved[0]) ? result.moved[0] : event.cards;
-                    for (var i = top.length - 1; i >= 0; i--) {
-                        ui.cardPile.unshift(top[i]);
-                    }
                     player.logSkill("jl_dianhua");
                 },
                 ai: {
@@ -769,6 +770,6 @@ export default function(){
     author: "nihility",
     diskURL: "",
     forumURL: "",
-    version: "1.4.6",
+    version: "1.4.7",
 },files:{"character":["mozarong.jpg","caochun.jpg","re_caoxian.jpg","zhangqiying.jpg"],"card":[],"skill":[],"audio":[]}} 
 };
