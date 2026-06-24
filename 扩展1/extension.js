@@ -58,6 +58,16 @@ export default function(){
                 skills: ["jl_fanghun","jl_fuhan"],
                 img: "extension/扩展1/jl_zhaoxiang.jpg",
                 hujia: 0,
+                dieAudios: ["ext:扩展1/audio/die/jl_zhaoxiang.mp3"],
+            },
+            "jl_nianshou": {
+                sex: "male",
+                group: "shen",
+                hp: 4,
+                maxHp: 4,
+                skills: ["jl_fange","jl_xunlie"],
+                img: "extension/扩展1/jl_nianshou.jpg",
+                hujia: 0,
             },
         },
         translate: {
@@ -71,6 +81,8 @@ export default function(){
             "jl_zhangqiying_prefix": "将灵",
             "jl_zhaoxiang": "将灵赵襄",
             "jl_zhaoxiang_prefix": "将灵",
+            "jl_nianshou": "将灵年兽",
+            "jl_nianshou_prefix": "将灵",
             "扩展1": "扩展1",
         },
     },
@@ -633,7 +645,7 @@ export default function(){
                     if (gained.length >= 3) {
                         return "是否发动「扶汉」回复1点体力并摸两张牌？（你已因此获得3个技能）";
                     }
-                    return "是否发动「扶汉」随机获得一个蜀国武将技能直到下回合结束？";
+                    return "是否发动「扶汉」随机获得一个蜀国武将技能直到下回合开始时？";
                 },
                 check: function(event, player) {
                     return true;
@@ -700,6 +712,111 @@ export default function(){
                 sub: true,
                 sourceSkill: "jl_fuhan",
                 "skill_id": "jl_fuhan_reset",
+                "_priority": 0,
+            },
+            "jl_fange": {
+                audio: "ext:扩展1:2",
+                trigger: {
+                    player: "damageEnd",
+                },
+                filter: function(event, player) {
+                    return event.source && event.source.isIn() && event.player == player;
+                },
+                prompt: function(event, player) {
+                    return "是否发动「反戈」摸两张牌，获得" + get.translation(event.source) + "一至两张牌并对其造成1~2点伤害？";
+                },
+                check: function(event, player) {
+                    return true;
+                },
+                async content(event, trigger, player) {
+                    var source = trigger.source;
+                    await player.draw(2);
+                    if (source && source.isIn() && source.countCards("he")) {
+                        var maxGet = Math.min(2, source.countCards("he"));
+                        var r1 = await player.choosePlayerCard(source, "he", true, [1, maxGet],
+                            "反戈：获得" + get.translation(source) + "一至两张牌")
+                            .set("ai", function(card) { return get.value(card); }).forResult();
+                        if (r1.bool && r1.cards && r1.cards.length) {
+                            await player.gain(r1.cards, source, "giveAuto");
+                        }
+                    }
+                    if (source && source.isIn()) {
+                        var r2 = await player.chooseControl("1点", "2点").set("prompt", "反戈：选择对" + get.translation(source) + "造成的伤害点数")
+                            .set("ai", function() { return 1; }).forResult();
+                        source.damage(r2.index + 1, player);
+                    }
+                },
+                ai: {
+                    threaten: 2,
+                },
+                "skill_id": "jl_fange",
+                "_priority": 0,
+            },
+            "jl_xunlie": {
+                audio: "ext:扩展1:2",
+                trigger: {
+                    global: "phaseJieshuBegin",
+                },
+                filter: function(event, player) {
+                    return event.player && event.player.isIn() && player.isIn() && (player.storage.jl_xunlie_count || 0) < 2;
+                },
+                prompt: function(event, player) {
+                    return "是否发动「寻猎」对" + get.translation(event.player) + "执行一项？（每轮剩余" + (2 - (player.storage.jl_xunlie_count || 0)) + "次）";
+                },
+                check: function(event, player) {
+                    return get.attitude(player, event.player) > 0 || get.attitude(player, event.player) < 0;
+                },
+                async content(event, trigger, player) {
+                    player.storage.jl_xunlie_count = (player.storage.jl_xunlie_count || 0) + 1;
+                    var target = trigger.player;
+                    var result = await player.chooseControl("回复1点体力并摸两张牌", "造成1点伤害并随机弃置两张牌")
+                        .set("prompt", "寻猎：选择对" + get.translation(target) + "执行的一项")
+                        .set("ai", function() {
+                            var p = _status.event.player, t = _status.event.getParent().target;
+                            return get.attitude(p, t) > 0 ? "回复1点体力并摸两张牌" : "造成1点伤害并随机弃置两张牌";
+                        }).forResult();
+                    player.logSkill("jl_xunlie", target);
+                    if (result.control == "回复1点体力并摸两张牌") {
+                        player.line(target, "green");
+                        target.recover();
+                        await target.draw(2);
+                    } else {
+                        player.line(target, "fire");
+                        target.damage(1, player);
+                        var cards = target.getCards("he").slice();
+                        for (var i = cards.length - 1; i > 0; i--) {
+                            var j = Math.floor(Math.random() * (i + 1));
+                            var tmp = cards[i];
+                            cards[i] = cards[j];
+                            cards[j] = tmp;
+                        }
+                        var num = Math.min(2, cards.length);
+                        if (num > 0) target.discard(cards.slice(0, num));
+                    }
+                },
+                group: "jl_xunlie_reset",
+                ai: {
+                    threaten: 1.5,
+                },
+                "skill_id": "jl_xunlie",
+                "_priority": 0,
+            },
+            "jl_xunlie_reset": {
+                trigger: {
+                    global: "roundStart",
+                },
+                forced: true,
+                popup: false,
+                silent: true,
+                filter: function(event, player) {
+                    return (player.storage.jl_xunlie_count || 0) > 0;
+                },
+                async content(event, trigger, player) {
+                    player.storage.jl_xunlie_count = 0;
+                },
+                sub: true,
+                sourceSkill: "jl_xunlie",
+                "skill_id": "jl_xunlie_reset",
                 "_priority": 0,
             },
             "re_dclingxi": {
@@ -901,7 +1018,11 @@ export default function(){
             "jl_fanghun": "芳魂",
             "jl_fanghun_info": "当你使用或打出的【杀】或【闪】进入弃牌堆时，你可以获得此牌，然后你可以弃置一名其他角色至多3张牌，并摸1~3张牌，再对其造成1点伤害。（每回合限触发3次）",
             "jl_fuhan": "扶汉",
-            "jl_fuhan_info": "当你造成或受到伤害后，你可以随机获得一个蜀国武将技能直到你的下回合结束。若你已因此获得3个技能，则改为回复1点体力并摸两张牌。（每回合限触发3次）",
+            "jl_fuhan_info": "当你造成或受到伤害后，你可以随机获得一个蜀国武将技能直到你的下回合开始时。若你已因此获得3个技能，则改为回复1点体力并摸两张牌。（每回合限触发3次）",
+            "jl_fange": "反戈",
+            "jl_fange_info": "当你受到伤害后，你可以摸两张牌，然后获得伤害来源一至两张牌，再对伤害来源造成1~2点伤害。",
+            "jl_xunlie": "寻猎",
+            "jl_xunlie_info": "一名角色的回合结束时，你可以选择一项：令其回复1点体力并摸两张牌；或对其造成1点伤害并随机弃置两张牌。（每轮限触发两次）",
             "re_dclingxi": "灵犀",
             "re_dclingxi_info": "每轮开始时、出牌阶段开始和结束时，你可以将至多X张牌称为「翼」置于你的武将牌上（X为你的体力上限）。当你失去武将牌上的「翼」时，你将手牌数调整至Y张（Y为你武将牌上的「翼」所含有的花色数的两倍）。",
             "re_dczhifou": "知否",
@@ -912,6 +1033,6 @@ export default function(){
     author: "nihility",
     diskURL: "",
     forumURL: "",
-    version: "1.5.0",
-},files:{"character":["jl_zhangqiying.jpg","re_caoxian.jpg","jl_zhaoxiang.jpg"],"card":[],"skill":[],"audio":[]}} 
+    version: "1.5.1",
+},files:{"character":["jl_zhaoxiang.jpg","jl_zhangqiying.jpg","re_caoxian.jpg","jl_nianshou.jpg"],"card":[],"skill":[],"audio":[]}} 
 };
