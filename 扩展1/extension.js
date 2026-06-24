@@ -58,9 +58,6 @@ export default function(){
             "re_caoxian_prefix": "界",
             "jl_zhangqiying": "将灵张琪瑛",
             "jl_zhangqiying_prefix": "将灵",
-            "缮甲": "缮甲",
-            "骁锐": "骁锐",
-            "界笮融曹纯": "界笮融曹纯",
             "扩展1": "扩展1",
         },
     },
@@ -772,6 +769,6 @@ export default function(){
     author: "nihility",
     diskURL: "",
     forumURL: "",
-    version: "1.4.5",
+    version: "1.4.6",
 },files:{"character":["mozarong.jpg","caochun.jpg","re_caoxian.jpg","zhangqiying.jpg"],"card":[],"skill":[],"audio":[]}} 
 };
