@@ -7,7 +7,7 @@ export default function(){
     
 },prepare:function(){
 },precontent:function(){
-    
+    if (lib.namePrefix) lib.namePrefix.set("将灵", { color: "#c3f9ff", nature: "thundermm" });
 },help:{},config:{},package:{
     character: {
         character: {
@@ -21,14 +21,14 @@ export default function(){
                 img: "extension/扩展1/mozarong.jpg",
                 dieAudios: ["ext:扩展1/audio/die/界笮融.mp3"],
             },
-            "曹纯将灵": {
+            "jl_caochun": {
                 sex: "male",
                 group: "wei",
                 hp: 4,
                 maxHp: 4,
                 skills: ["kuanglan","jielve"],
                 img: "extension/扩展1/caochun.jpg",
-                dieAudios: ["ext:扩展1/audio/die/曹纯将灵.mp3"],
+                dieAudios: ["ext:扩展1/audio/die/jl_caochun.mp3"],
             },
             "re_caoxian": {
                 sex: "female",
@@ -43,7 +43,8 @@ export default function(){
         translate: {
             "界笮融": "魔笮融",
             "界笮融_prefix": "魔",
-            "曹纯将灵": "曹纯将灵",
+            "jl_caochun": "将灵曹纯",
+            "jl_caochun_prefix": "将灵",
             "re_caoxian": "界曹宪",
             "re_caoxian_prefix": "界",
             "缮甲": "缮甲",
@@ -586,6 +587,6 @@ export default function(){
     author: "nihility",
     diskURL: "",
     forumURL: "",
-    version: "1.4.1",
+    version: "1.4.2",
 },files:{"character":["mozarong.jpg","caochun.jpg","re_caoxian.jpg"],"card":[],"skill":[],"audio":[]}} 
 };
