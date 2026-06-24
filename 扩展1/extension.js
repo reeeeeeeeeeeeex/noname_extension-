@@ -39,6 +39,15 @@ export default function(){
                 img: "extension/扩展1/re_caoxian.jpg",
                 hujia: 0,
             },
+            "jl_zhangqiying": {
+                sex: "female",
+                group: "qun",
+                hp: 4,
+                maxHp: 4,
+                skills: ["jl_falu","jl_dianhua","jl_zhenyi"],
+                img: "extension/扩展1/zhangqiying.jpg",
+                dieAudios: ["ext:扩展1/audio/die/jl_zhangqiying.mp3"],
+            },
         },
         translate: {
             "界笮融": "魔笮融",
@@ -47,6 +56,8 @@ export default function(){
             "jl_caochun_prefix": "将灵",
             "re_caoxian": "界曹宪",
             "re_caoxian_prefix": "界",
+            "jl_zhangqiying": "将灵张琪瑛",
+            "jl_zhangqiying_prefix": "将灵",
             "缮甲": "缮甲",
             "骁锐": "骁锐",
             "界笮融曹纯": "界笮融曹纯",
@@ -384,6 +395,177 @@ export default function(){
                 "skill_id": "jl_xiaorui",
                 "_priority": 0,
             },
+            "jl_falu": {
+                audio: "ext:扩展1:2",
+                trigger: {
+                    player: "phaseJieshuBegin",
+                },
+                check: function(event, player) {
+                    return true;
+                },
+                content: function() {
+                    'step 0'
+                    var suits = ["spade", "heart", "club", "diamond"];
+                    var pile = ui.cardPile;
+                    var gained = [];
+                    for (var s = 0; s < suits.length; s++) {
+                        var suit = suits[s];
+                        var candidates = [];
+                        for (var i = 0; i < pile.length; i++) {
+                            if (get.suit(pile[i], false) == suit) candidates.push(pile[i]);
+                        }
+                        if (candidates.length) {
+                            gained.push(candidates[Math.floor(Math.random() * candidates.length)]);
+                        }
+                    }
+                    event.gained = gained;
+                    for (var i = 0; i < gained.length; i++) {
+                        ui.cardPile.remove(gained[i]);
+                    }
+                    if (gained.length) {
+                        player.gain(gained, "gain2");
+                        player.logSkill("jl_falu");
+                    }
+                    'step 1'
+                    var gained = event.gained;
+                    var sameNum = false;
+                    var nums = {};
+                    for (var i = 0; i < gained.length; i++) {
+                        var num = get.number(gained[i], false);
+                        if (num !== undefined && num !== null) {
+                            if (nums[num]) { sameNum = true; break; }
+                            nums[num] = true;
+                        }
+                    }
+                    if (sameNum && gained.length) {
+                        player.recover();
+                        event._sameNum = true;
+                        if (game.hasPlayer(function(current) { return current != player; })) {
+                            player.chooseTarget("法箓：选择至多两名其他角色各造成1点伤害", [1, 2], lib.filter.notMe).set("ai", function(target) {
+                                return get.attitude(_status.event.player, target) < 0 ? 1 : 0;
+                            });
+                            event._needChoose = true;
+                        }
+                    }
+                    'step 2'
+                    if (event._sameNum && event._needChoose && result.bool) {
+                        var targets = result.targets;
+                        for (var i = 0; i < targets.length; i++) {
+                            player.line(targets[i], "fire");
+                            targets[i].damage(1, player);
+                        }
+                    }
+                },
+                ai: {
+                    threaten: 1.5,
+                },
+                "skill_id": "jl_falu",
+                "_priority": 0,
+            },
+            "jl_dianhua": {
+                audio: "ext:扩展1:2",
+                trigger: {
+                    player: "phaseZhunbeiBegin",
+                },
+                frequent: true,
+                content: function() {
+                    'step 0'
+                    var cards = get.cards(4);
+                    event.cards = cards;
+                    player.chooseToMove("点化：将卡牌按任意顺序置于牌堆顶（越靠左越在顶部）", true).set("list", [
+                        ["牌堆顶（上→下）", cards]
+                    ]).set("processAI", function(list) {
+                        var cs = list[0][1].slice();
+                        cs.sort(function(a, b) {
+                            return get.value(b) - get.value(a);
+                        });
+                        return [cs];
+                    });
+                    'step 1'
+                    var top = (result && result.moved && result.moved[0]) ? result.moved[0] : event.cards;
+                    for (var i = top.length - 1; i >= 0; i--) {
+                        ui.cardPile.unshift(top[i]);
+                    }
+                    player.logSkill("jl_dianhua");
+                },
+                ai: {
+                    threaten: 1.2,
+                },
+                "skill_id": "jl_dianhua",
+                "_priority": 0,
+            },
+            "jl_zhenyi": {
+                audio: "ext:扩展1:2",
+                group: ["jl_zhenyi_damage", "jl_zhenyi_defend"],
+                "skill_id": "jl_zhenyi",
+                "_priority": 0,
+            },
+            "jl_zhenyi_damage": {
+                audio: "ext:扩展1:2",
+                trigger: {
+                    source: "damageBegin",
+                },
+                usable: 2,
+                filter: function(event, player) {
+                    return event.player && event.player != player;
+                },
+                check: function(event, player) {
+                    return true;
+                },
+                content: function() {
+                    trigger.num++;
+                    var target = trigger.player;
+                    var cards = target.getCards("he");
+                    if (cards.length) {
+                        var card = cards[Math.floor(Math.random() * cards.length)];
+                        player.gain(card, target, "giveAuto");
+                    }
+                    player.logSkill("jl_zhenyi", target);
+                },
+                ai: {
+                    damageBonus: true,
+                },
+                sub: true,
+                sourceSkill: "jl_zhenyi",
+                "skill_id": "jl_zhenyi_damage",
+                "_priority": 0,
+            },
+            "jl_zhenyi_defend": {
+                audio: "ext:扩展1:2",
+                trigger: {
+                    player: "damageBegin",
+                },
+                usable: 2,
+                filter: function(event, player) {
+                    return event.source && event.source != player;
+                },
+                check: function(event, player) {
+                    return true;
+                },
+                content: function() {
+                    trigger.cancel();
+                    var source = trigger.source;
+                    if (source && source.countCards("he")) {
+                        var cards = source.getCards("he").slice();
+                        for (var i = cards.length - 1; i > 0; i--) {
+                            var j = Math.floor(Math.random() * (i + 1));
+                            var temp = cards[i];
+                            cards[i] = cards[j];
+                            cards[j] = temp;
+                        }
+                        var num = Math.min(2, cards.length);
+                        source.discard(cards.slice(0, num));
+                    }
+                    player.logSkill("jl_zhenyi", source);
+                },
+                ai: {
+                    threaten: 1.5,
+                },
+                sub: true,
+                sourceSkill: "jl_zhenyi",
+                "skill_id": "jl_zhenyi_defend",
+                "_priority": 0,
+            },
             "re_dclingxi": {
                 trigger: {
                     player: ["phaseUseBegin","phaseUseEnd"],
@@ -574,6 +756,12 @@ export default function(){
             "jl_shanjia_info": "每名角色的回合开始时，你可以摸2-4张牌（自选）；若此时是你的回合，你可以视为使用一张无视距离、不可响应且伤害增加1-2点（自选）的【杀】。",
             jl_xiaorui: "骁锐",
             "jl_xiaorui_info": "每回合限四次，当你造成伤害时，你可以先随机获得受伤目标2-4张牌（自选张数），然后令此伤害增加2-4点（自选点数）。",
+            jl_falu: "法箓",
+            "jl_falu_info": "结束阶段，你可以随机获得牌堆中四种花色的牌各一张。若你因此获得了点数相同的牌，你回复1点体力并对至多两名其他角色各造成1点伤害。",
+            jl_dianhua: "点化",
+            "jl_dianhua_info": "准备阶段，你可以观看牌堆顶的四张牌，然后以任意顺序放回牌堆顶。",
+            jl_zhenyi: "真仪",
+            "jl_zhenyi_info": "当你对其他角色造成伤害时，你可以令此伤害+1，然后随机获得其一张牌；当你受到其他角色造成的伤害时，你可以防止此伤害，然后你随机弃置伤害来源两张牌。（每个效果每回合各限触发2次）",
             "re_dclingxi": "灵犀",
             "re_dclingxi_info": "每轮开始时、出牌阶段开始和结束时，你可以将至多X张牌称为「翼」置于你的武将牌上（X为你的体力上限）。当你失去武将牌上的「翼」时，你将手牌数调整至Y张（Y为你武将牌上的「翼」所含有的花色数的两倍）。",
             "re_dczhifou": "知否",
@@ -584,6 +772,6 @@ export default function(){
     author: "nihility",
     diskURL: "",
     forumURL: "",
-    version: "1.4.4",
-},files:{"character":["mozarong.jpg","caochun.jpg","re_caoxian.jpg"],"card":[],"skill":[],"audio":[]}} 
+    version: "1.4.5",
+},files:{"character":["mozarong.jpg","caochun.jpg","re_caoxian.jpg","zhangqiying.jpg"],"card":[],"skill":[],"audio":[]}} 
 };
