@@ -349,20 +349,17 @@ export default function(){
                     source: "damageBegin",
                 },
                 usable: 4,
+                check: function(event, player) {
+                    return true;
+                },
                 content: function() {
                     'step 0'
-                    player.chooseBool(get.prompt("jielve")).set('ai', function() { return true; });
+                    player.chooseControl('2张', '3张', '4张').set('prompt', '请选择获得牌的数量').set('ai', function() { return 2; });
                     'step 1'
-                    if (result.bool) {
-                        player.chooseControl('2张', '3张', '4张').set('prompt', '请选择获得牌的数量').set('ai', function() { return 2; });
-                    } else {
-                        event.finish();
-                    }
-                    'step 2'
                     var cardCount = result.index + 2;
                     event._cardCount = cardCount;
                     player.chooseControl('2', '3', '4').set('prompt', '请选择伤害增加量').set('ai', function() { return 2; });
-                    'step 3'
+                    'step 2'
                     var dmgAdd = result.index + 2;
                     var target = trigger.player;
                     // 先随机获得目标手牌装备
@@ -587,6 +584,6 @@ export default function(){
     author: "nihility",
     diskURL: "",
     forumURL: "",
-    version: "1.4.2",
+    version: "1.4.3",
 },files:{"character":["mozarong.jpg","caochun.jpg","re_caoxian.jpg"],"card":[],"skill":[],"audio":[]}} 
 };
