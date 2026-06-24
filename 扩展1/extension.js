@@ -400,31 +400,19 @@ export default function(){
                 check: function(event, player) {
                     return true;
                 },
-                content: function() {
-                    'step 0'
+                async content(event, trigger, player) {
                     var suits = ["spade", "heart", "club", "diamond"];
-                    var pile = ui.cardPile;
                     var gained = [];
                     for (var s = 0; s < suits.length; s++) {
                         var suit = suits[s];
-                        var candidates = [];
-                        for (var i = 0; i < pile.length; i++) {
-                            if (get.suit(pile[i], false) == suit) candidates.push(pile[i]);
-                        }
-                        if (candidates.length) {
-                            gained.push(candidates[Math.floor(Math.random() * candidates.length)]);
-                        }
+                        var card = get.cardPile(function(card2) {
+                            return get.suit(card2, false) == suit && !gained.includes(card2);
+                        }, "cardPile", "random");
+                        if (card) gained.push(card);
                     }
-                    event.gained = gained;
-                    for (var i = 0; i < gained.length; i++) {
-                        ui.cardPile.remove(gained[i]);
-                    }
-                    if (gained.length) {
-                        player.gain(gained, "gain2");
-                        player.logSkill("jl_falu");
-                    }
-                    'step 1'
-                    var gained = event.gained;
+                    if (!gained.length) return;
+                    player.logSkill("jl_falu");
+                    await player.gain(gained, "draw");
                     var sameNum = false;
                     var nums = {};
                     for (var i = 0; i < gained.length; i++) {
@@ -434,22 +422,17 @@ export default function(){
                             nums[num] = true;
                         }
                     }
-                    if (sameNum && gained.length) {
-                        player.recover();
-                        event._sameNum = true;
-                        if (game.hasPlayer(function(current) { return current != player; })) {
-                            player.chooseTarget("法箓：选择至多两名其他角色各造成1点伤害", [1, 2], lib.filter.notMe).set("ai", function(target) {
-                                return get.attitude(_status.event.player, target) < 0 ? 1 : 0;
-                            });
-                            event._needChoose = true;
-                        }
-                    }
-                    'step 2'
-                    if (event._sameNum && event._needChoose && result.bool) {
-                        var targets = result.targets;
-                        for (var i = 0; i < targets.length; i++) {
-                            player.line(targets[i], "fire");
-                            targets[i].damage(1, player);
+                    if (!sameNum) return;
+                    player.recover();
+                    if (!game.hasPlayer(function(current) { return current != player; })) return;
+                    var result = await player.chooseTarget("法箓：选择至多两名其他角色各造成1点伤害", [1, 2], lib.filter.notMe)
+                        .set("ai", function(target) {
+                            return get.attitude(_status.event.player, target) < 0 ? 1 : 0;
+                        }).forResult();
+                    if (result.bool) {
+                        for (var i = 0; i < result.targets.length; i++) {
+                            player.line(result.targets[i], "fire");
+                            result.targets[i].damage(1, player);
                         }
                     }
                 },
@@ -507,16 +490,19 @@ export default function(){
                 filter: function(event, player) {
                     return event.player && event.player != player;
                 },
+                prompt: function(event, player) {
+                    return "是否发动「真仪」，令对" + get.translation(event.player) + "造成的伤害+1并随机获得其一张牌？";
+                },
                 check: function(event, player) {
                     return true;
                 },
-                content: function() {
+                async content(event, trigger, player) {
                     trigger.num++;
                     var target = trigger.player;
                     var cards = target.getCards("he");
                     if (cards.length) {
                         var card = cards[Math.floor(Math.random() * cards.length)];
-                        player.gain(card, target, "giveAuto");
+                        await player.gain(card, target, "giveAuto");
                     }
                     player.logSkill("jl_zhenyi", target);
                 },
@@ -537,10 +523,13 @@ export default function(){
                 filter: function(event, player) {
                     return event.source && event.source != player;
                 },
+                prompt: function(event, player) {
+                    return "是否发动「真仪」，防止此伤害并随机弃置" + get.translation(event.source) + "两张牌？";
+                },
                 check: function(event, player) {
                     return true;
                 },
-                content: function() {
+                async content(event, trigger, player) {
                     trigger.cancel();
                     var source = trigger.source;
                     if (source && source.countCards("he")) {
@@ -770,6 +759,6 @@ export default function(){
     author: "nihility",
     diskURL: "",
     forumURL: "",
-    version: "1.4.7",
+    version: "1.4.8",
 },files:{"character":["mozarong.jpg","caochun.jpg","re_caoxian.jpg","zhangqiying.jpg"],"card":[],"skill":[],"audio":[]}} 
 };
