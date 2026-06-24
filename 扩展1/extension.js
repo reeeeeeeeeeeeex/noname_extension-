@@ -78,6 +78,16 @@ export default function(){
                 skills: ["jl_xiefang","jl_zhengnan"],
                 img: "extension/扩展1/jl_guansuo.jpg",
                 hujia: 0,
+                dieAudios: ["ext:扩展1/audio/die/jl_guansuo.mp3"],
+            },
+            "jl_caoying": {
+                sex: "female",
+                group: "wei",
+                hp: 5,
+                maxHp: 5,
+                skills: ["jl_lingren","jl_fujian"],
+                img: "extension/扩展1/jl_caoying.jpg",
+                hujia: 0,
             },
         },
         translate: {
@@ -95,6 +105,8 @@ export default function(){
             "jl_nianshou_prefix": "将灵",
             "jl_guansuo": "将灵关索",
             "jl_guansuo_prefix": "将灵",
+            "jl_caoying": "将灵曹婴",
+            "jl_caoying_prefix": "将灵",
             "扩展1": "扩展1",
         },
     },
@@ -995,6 +1007,124 @@ export default function(){
                 "skill_id": "jl_dangxian_rewrite",
                 "_priority": 0,
             },
+            "jl_lingren": {
+                audio: "ext:扩展1:2",
+                trigger: {
+                    player: "useCard",
+                },
+                usable: 2,
+                filter: function(event, player) {
+                    if (!["basic", "trick"].includes(get.type(event.card))) return false;
+                    return get.is.damageCard(event.card) && event.targets && event.targets.length > 0;
+                },
+                prompt: function(event, player) {
+                    return "是否发动「凌人」选择一个目标使其受到此牌伤害+1~2并摸1~3张牌、获得奸雄与行殇？";
+                },
+                check: function(event, player) {
+                    return true;
+                },
+                async content(event, trigger, player) {
+                    var result = await player.chooseTarget("凌人：选择一个目标令此牌对其伤害+1~2", true, function(card, p, target) {
+                        return _status.event.targets.includes(target);
+                    }).set("targets", trigger.targets)
+                        .set("ai", function(target) { return 2 - get.attitude(get.player(), target); }).forResult();
+                    if (!result.bool) return;
+                    var target = result.targets[0];
+                    var r1 = await player.chooseControl("1点", "2点").set("prompt", "凌人：选择对" + get.translation(target) + "增加的伤害点数")
+                        .set("ai", function() { return 1; }).forResult();
+                    var dmgAdd = r1.index + 1;
+                    var r2 = await player.chooseControl("1张", "2张", "3张").set("prompt", "凌人：选择摸牌数量")
+                        .set("ai", function() { return 2; }).forResult();
+                    var drawNum = r2.index + 1;
+                    player.logSkill("jl_lingren", target);
+                    player.addTempSkill("jl_lingren_damage");
+                    var map = player.getStorage("jl_lingren_damage", {});
+                    map[target.playerid] = (map[target.playerid] || 0) + dmgAdd;
+                    player.setStorage("jl_lingren_damage", map, true);
+                    await player.draw(drawNum);
+                    player.addTempSkill("new_rejianxiong", { player: "phaseBegin" });
+                    player.addTempSkill("rexingshang", { player: "phaseBegin" });
+                    game.log(player, "获得了技能", "#g【奸雄】", "#g【行殇】");
+                },
+                ai: {
+                    threaten: 2,
+                },
+                "skill_id": "jl_lingren",
+                "_priority": 0,
+            },
+            "jl_lingren_damage": {
+                audio: "ext:扩展1:2",
+                charlotte: true,
+                onremove: true,
+                init: function(player, skill) {
+                    player.storage[skill] = {};
+                },
+                trigger: {
+                    source: "damageBegin1",
+                },
+                forced: true,
+                popup: false,
+                logTarget: "player",
+                filter: function(event, player) {
+                    var map = player.getStorage("jl_lingren_damage", {});
+                    return map[event.player.playerid] > 0;
+                },
+                async content(event, trigger, player) {
+                    var map = player.getStorage("jl_lingren_damage", {});
+                    var num = map[trigger.player.playerid] || 0;
+                    delete map[trigger.player.playerid];
+                    if (!Object.keys(map).length) {
+                        player.removeSkill("jl_lingren_damage");
+                    } else {
+                        player.setStorage("jl_lingren_damage", map, true);
+                    }
+                    trigger.num += num;
+                },
+                "skill_id": "jl_lingren_damage",
+                "_priority": 0,
+            },
+            "jl_fujian": {
+                audio: "ext:扩展1:2",
+                trigger: {
+                    player: ["phaseZhunbeiBegin","phaseJieshuBegin"],
+                },
+                filter: function(event, player) {
+                    return game.hasPlayer(function(target) { return target != player && target.countCards("h"); });
+                },
+                prompt: function(event, player) {
+                    return "是否发动「伏间」观看并获得一名其他角色至多两张手牌？";
+                },
+                check: function(event, player) {
+                    return true;
+                },
+                async content(event, trigger, player) {
+                    var result = await player.chooseTarget("伏间：选择一名其他角色", true, function(card, p, target) {
+                        return target != p && target.countCards("h") > 0;
+                    }).set("ai", function(target) { return -get.attitude(get.player(), target); }).forResult();
+                    if (!result.bool) return;
+                    var target = result.targets[0];
+                    player.logSkill("jl_fujian", target);
+                    var maxGet = Math.min(2, target.countCards("h"));
+                    var r2 = await player.chooseButton(["伏间：获得" + get.translation(target) + "至多两张手牌", target.getCards("h")], [1, maxGet])
+                        .set("ai", function(button) { return get.value(button.link); }).forResult();
+                    if (!r2.bool || !r2.links || !r2.links.length) return;
+                    var cards = r2.links;
+                    await player.gain(cards, target, "giveAuto");
+                    var colors = cards.map(function(c) { return get.color(c, target); }).filter(function(c) { return c; });
+                    if (colors.length) {
+                        var same = colors.every(function(c) { return c == colors[0]; });
+                        if (same) {
+                            player.line(target, "fire");
+                            target.damage(1, player);
+                        }
+                    }
+                },
+                ai: {
+                    threaten: 1.5,
+                },
+                "skill_id": "jl_fujian",
+                "_priority": 0,
+            },
             "re_dclingxi": {
                 trigger: {
                     player: ["phaseUseBegin","phaseUseEnd"],
@@ -1205,6 +1335,10 @@ export default function(){
             "jl_zhengnan_info": "一名角色受到伤害后，若其体力值小于等于你，你可以摸1~3张牌，然后在“武圣”、“当先”、“制蛮”里选择并获得一个技能直到你的下个回合结束（每回合每名角色限触发一次），若未获得技能（已经选完）则你回复1点体力。",
             "jl_dangxian": "当先",
             "jl_dangxian_info": "锁定技，回合开始时，你执行一个额外的出牌阶段。此阶段开始时，你可以失去1点体力并获得一张【杀】。",
+            "jl_lingren": "凌人",
+            "jl_lingren_info": "你使用【杀】或伤害类锦囊牌指定目标后，你可以选择其中一个目标使此牌对其伤害+1~2，然后你摸1~3张牌，并且你获得“奸雄”、“行殇”直到你下回合开始。（每回合限触发2次）",
+            "jl_fujian": "伏间",
+            "jl_fujian_info": "准备阶段或结束阶段，你可以观看一名其他角色的手牌，然后你可以获得其中至多两张牌，若颜色相同，对其造成1点伤害。",
             "re_dclingxi": "灵犀",
             "re_dclingxi_info": "每轮开始时、出牌阶段开始和结束时，你可以将至多X张牌称为「翼」置于你的武将牌上（X为你的体力上限）。当你失去武将牌上的「翼」时，你将手牌数调整至Y张（Y为你武将牌上的「翼」所含有的花色数的两倍）。",
             "re_dczhifou": "知否",
@@ -1215,6 +1349,6 @@ export default function(){
     author: "nihility",
     diskURL: "",
     forumURL: "",
-    version: "1.5.3",
-},files:{"character":["jl_zhaoxiang.jpg","jl_zhangqiying.jpg","re_caoxian.jpg","jl_nianshou.jpg","jl_guansuo.jpg"],"card":[],"skill":[],"audio":[]}} 
+    version: "1.5.4",
+},files:{"character":["jl_guansuo.jpg","jl_zhangqiying.jpg","jl_zhaoxiang.jpg","re_caoxian.jpg","jl_nianshou.jpg","jl_caoying.jpg"],"card":[],"skill":[],"audio":[]}} 
 };
