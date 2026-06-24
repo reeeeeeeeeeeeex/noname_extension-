@@ -79,74 +79,60 @@ export default function(){
                     return game.hasPlayer(target => target != player); 
                 },
                 prompt: "魔残肆：你可以回复1点体力",
-                content() {
-                    "step 0";
+                async content(event, trigger, player) {
                     player.recover();
-                    "step 1";
-                    if (!game.hasPlayer(current => current != player)) {
-                        event.finish();
-                        return;
-                    }
-                    player.chooseBool("是否继续发动【魔残肆】，令一名其他角色回复1点体力并视为对其使用三张虚拟牌？").set("ai", function() {
+                    if (!game.hasPlayer(current => current != player)) return;
+                    var result = await player.chooseBool("是否继续发动【魔残肆】，令一名其他角色回复1点体力并视为对其使用三张虚拟牌？").set("ai", function() {
                         return game.hasPlayer(function(target) {
                             return target != player && get.attitude(player, target) < 0;
                         });
-                    });
-                    "step 2";
-                    if (!result.bool) {
-                        event.finish();
-                        return;
-                    }
-                    player.chooseTarget("魔残肆：选择一名其他角色", true, lib.filter.notMe).set("ai", target => {
+                    }).forResult();
+                    if (!result.bool) return;
+                    var result2 = await player.chooseTarget("魔残肆：选择一名其他角色", true, lib.filter.notMe).set("ai", target => {
                         var player = _status.event.player;
                         var list = ["recover", "sha", "juedou", "huogong"];
                         return list.reduce((p, c) => p + get.effect(target, { name: c }, player, player), 0);
-                    });
-                    "step 3";
-                    if (!result.bool) {
-                        event.finish();
-                        return;
-                    }
-                    var target = result.targets[0];
+                    }).forResult();
+                    if (!result2.bool) return;
+                    var target = result2.targets[0];
                     event.target = target;
-                    event.count = 0;
+                    var count = 0;
                     player.line(target, "fire");
                     target.recover();
                     player.addTempSkill("ext1_mocansi_draw");
-                    "step 4";
-                    player.chooseControl("杀", "决斗", "火攻").set("prompt", "魔残肆：选择第" + (event.count + 1) + "张虚拟牌").set("choiceList", [
-                        "视为对其使用一张【杀】",
-                        "视为对其使用一张【决斗】",
-                        "视为对其使用一张【火攻】"
-                    ]).set("ai", function() {
-                        var player = _status.event.player;
-                        var target = _status.event.getParent().target;
-                        var map = { "杀": "sha", "决斗": "juedou", "火攻": "huogong" };
-                        var controls = _status.event.controls;
-                        var choice = controls[0];
-                        var max = -Infinity;
-                        for (var i = 0; i < controls.length; i++) {
-                            var name = map[controls[i]];
-                            var eff = get.effect(target, { name: name, isCard: true }, player, player);
-                            if (eff > max) {
-                                max = eff;
-                                choice = controls[i];
+                    try {
+                        while (count < 3 && target.isIn()) {
+                            var result3 = await player.chooseControl("杀", "决斗", "火攻").set("prompt", "魔残肆：选择第" + (count + 1) + "张虚拟牌").set("choiceList", [
+                                "视为对其使用一张【杀】",
+                                "视为对其使用一张【决斗】",
+                                "视为对其使用一张【火攻】"
+                            ]).set("ai", function() {
+                                var player = _status.event.player;
+                                var target = _status.event.getParent().target;
+                                var map = { "杀": "sha", "决斗": "juedou", "火攻": "huogong" };
+                                var controls = _status.event.controls;
+                                var choice = controls[0];
+                                var max = -Infinity;
+                                for (var i = 0; i < controls.length; i++) {
+                                    var name = map[controls[i]];
+                                    var eff = get.effect(target, { name: name, isCard: true }, player, player);
+                                    if (eff > max) {
+                                        max = eff;
+                                        choice = controls[i];
+                                    }
+                                }
+                                return choice;
+                            }).forResult();
+                            var map = { "杀": "sha", "决斗": "juedou", "火攻": "huogong" };
+                            var card = { name: map[result3.control], isCard: true };
+                            if (target.isIn() && player.canUse(card, target, false)) {
+                                player.useCard(card, target, false);
                             }
+                            count++;
                         }
-                        return choice;
-                    });
-                    "step 5";
-                    var map = { "杀": "sha", "决斗": "juedou", "火攻": "huogong" };
-                    var card = { name: map[result.control], isCard: true };
-                    if (event.target.isIn() && player.canUse(card, event.target, false)) {
-                        player.useCard(card, event.target, false);
+                    } finally {
+                        player.removeSkill("ext1_mocansi_draw");
                     }
-                    event.count++;
-                    if (event.count < 3 && event.target.isIn()) {
-                        event.goto(4);
-                    }
-                    "step 6";
-                    player.removeSkill("ext1_mocansi_draw");
                 },
                 subSkill: {
                     draw: {
@@ -160,8 +146,8 @@ export default function(){
                         filter(event, player) {
                             return event.source == player && event.num > 0;
                         },
-                        content() {
-                            player.draw(trigger.num * 2);
+                        async content(event, trigger, player) {
+                            await player.draw(trigger.num * 2);
                         },
                         sub: true,
                         sourceSkill: "ext1_mocansi",
@@ -759,6 +745,6 @@ export default function(){
     author: "nihility",
     diskURL: "",
     forumURL: "",
-    version: "1.4.8",
+    version: "1.4.9",
 },files:{"character":["mozarong.jpg","caochun.jpg","re_caoxian.jpg","zhangqiying.jpg"],"card":[],"skill":[],"audio":[]}} 
 };
