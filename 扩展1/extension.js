@@ -68,6 +68,16 @@ export default function(){
                 skills: ["jl_fange","jl_xunlie"],
                 img: "extension/扩展1/jl_nianshou.jpg",
                 hujia: 0,
+                dieAudios: ["ext:扩展1/audio/die/jl_nianshou.mp3"],
+            },
+            "jl_guansuo": {
+                sex: "male",
+                group: "shu",
+                hp: 5,
+                maxHp: 5,
+                skills: ["jl_xiefang","jl_zhengnan"],
+                img: "extension/扩展1/jl_guansuo.jpg",
+                hujia: 0,
             },
         },
         translate: {
@@ -83,6 +93,8 @@ export default function(){
             "jl_zhaoxiang_prefix": "将灵",
             "jl_nianshou": "将灵年兽",
             "jl_nianshou_prefix": "将灵",
+            "jl_guansuo": "将灵关索",
+            "jl_guansuo_prefix": "将灵",
             "扩展1": "扩展1",
         },
     },
@@ -819,6 +831,170 @@ export default function(){
                 "skill_id": "jl_xunlie_reset",
                 "_priority": 0,
             },
+            "jl_xiefang": {
+                audio: "ext:扩展1:2",
+                trigger: {
+                    player: "phaseUseBegin",
+                },
+                group: ["jl_xiefang_dmg"],
+                check: function(event, player) {
+                    return true;
+                },
+                prompt: "是否发动「撷芳」？",
+                async content(event, trigger, player) {
+                    var x = game.filterPlayer(function(c) { return c.sex == "female"; }).length + 1;
+                    player.storage.jl_xiefang_x = x;
+                    player.storage.jl_xiefang_dmg_count = 0;
+                    await player.draw(x);
+                    player.logSkill("jl_xiefang");
+                    player.addTempSkill("jl_xiefang_buff", { player: "phaseUseAfter" });
+                },
+                ai: {
+                    threaten: 2,
+                },
+                "skill_id": "jl_xiefang",
+                "_priority": 0,
+            },
+            "jl_xiefang_buff": {
+                charlotte: true,
+                mod: {
+                    globalFrom: function(player, target, distance) {
+                        var x = player.storage.jl_xiefang_x;
+                        if (typeof x == "number" && x > 0) return distance - x;
+                    },
+                    cardUsable: function(card, player, num) {
+                        if (card && card.name == "sha") {
+                            var x = player.storage.jl_xiefang_x;
+                            if (typeof x == "number" && x > 0) return num + x;
+                        }
+                    },
+                },
+                "skill_id": "jl_xiefang_buff",
+                "_priority": 0,
+            },
+            "jl_xiefang_dmg": {
+                audio: "ext:扩展1:2",
+                trigger: {
+                    source: "damageBegin1",
+                },
+                forced: true,
+                popup: false,
+                filter: function(event, player) {
+                    if (!event.card || event.card.name != "sha") return false;
+                    return (player.storage.jl_xiefang_dmg_count || 0) < 2 && player.hasSkill("jl_xiefang_buff");
+                },
+                async content(event, trigger, player) {
+                    var x = player.storage.jl_xiefang_x || 0;
+                    trigger.num += x;
+                    player.storage.jl_xiefang_dmg_count = (player.storage.jl_xiefang_dmg_count || 0) + 1;
+                },
+                "skill_id": "jl_xiefang_dmg",
+                "_priority": 0,
+            },
+            "jl_zhengnan": {
+                audio: "ext:扩展1:2",
+                trigger: {
+                    global: "damageEnd",
+                },
+                filter: function(event, player) {
+                    if (!event.player || !event.player.isIn() || !player.isIn()) return false;
+                    if (event.player.hp > player.hp) return false;
+                    var used = player.storage.jl_zhengnan_used;
+                    if (used && used.includes(event.player)) return false;
+                    return true;
+                },
+                prompt: function(event, player) {
+                    return "是否发动「征南」摸1~3张牌并选择获得一个技能？";
+                },
+                check: function(event, player) {
+                    return true;
+                },
+                async content(event, trigger, player) {
+                    if (!Array.isArray(player.storage.jl_zhengnan_used)) player.storage.jl_zhengnan_used = [];
+                    player.storage.jl_zhengnan_used.add(trigger.player);
+                    var r1 = await player.chooseControl("1张", "2张", "3张").set("prompt", "征南：选择摸牌数量")
+                        .set("ai", function() { return 2; }).forResult();
+                    await player.draw(r1.index + 1);
+                    player.logSkill("jl_zhengnan", trigger.player);
+                    var candidates = ["new_rewusheng", "jl_dangxian", "rezhiman"].filter(function(s) {
+                        return !player.hasSkill(s);
+                    });
+                    if (!candidates.length) {
+                        player.recover();
+                        return;
+                    }
+                    var names = candidates.map(function(s) { return get.translation(s); });
+                    var r2 = await player.chooseControl(names).set("prompt", "征南：选择获得一个技能（直到你的下个回合结束）")
+                        .set("ai", function() { return 0; }).forResult();
+                    var chosen = candidates[r2.index];
+                    player.addTempSkill(chosen, { player: "phaseAfter" });
+                    game.log(player, "获得了技能", "#g【" + get.translation(chosen) + "】");
+                },
+                group: "jl_zhengnan_round_reset",
+                ai: {
+                    threaten: 1.5,
+                },
+                "skill_id": "jl_zhengnan",
+                "_priority": 0,
+            },
+            "jl_zhengnan_round_reset": {
+                trigger: {
+                    global: "phaseBegin",
+                },
+                forced: true,
+                popup: false,
+                silent: true,
+                firstDo: true,
+                filter: function(event, player) {
+                    return Array.isArray(player.storage.jl_zhengnan_used) && player.storage.jl_zhengnan_used.length > 0;
+                },
+                async content(event, trigger, player) {
+                    player.storage.jl_zhengnan_used = [];
+                },
+                sub: true,
+                sourceSkill: "jl_zhengnan",
+                "skill_id": "jl_zhengnan_round_reset",
+                "_priority": 0,
+            },
+            "jl_dangxian": {
+                audio: "ext:扩展1:2",
+                trigger: {
+                    player: "phaseBegin",
+                },
+                forced: true,
+                async content(event, trigger, player) {
+                    trigger.phaseList.splice(trigger.num, 0, "phaseUse|" + event.name);
+                },
+                group: "jl_dangxian_rewrite",
+                ai: {
+                    halfneg: true,
+                },
+                "skill_id": "jl_dangxian",
+                "_priority": 0,
+            },
+            "jl_dangxian_rewrite": {
+                audio: "ext:扩展1:2",
+                trigger: {
+                    player: "phaseUseBegin",
+                },
+                forced: true,
+                popup: false,
+                filter: function(event, player) {
+                    return event._extraPhaseReason == "jl_dangxian";
+                },
+                async content(event, trigger, player) {
+                    var result = await player.chooseBool("是否失去1点体力并获得一张【杀】？")
+                        .set("ai", function() { return player.hp > 2 && !player.hasSha(); }).forResult();
+                    if (!result.bool) return;
+                    await player.loseHp();
+                    var card = get.cardPile(function(card) { return card.name == "sha"; });
+                    if (card) await player.gain(card, "gain2");
+                },
+                sub: true,
+                sourceSkill: "jl_dangxian",
+                "skill_id": "jl_dangxian_rewrite",
+                "_priority": 0,
+            },
             "re_dclingxi": {
                 trigger: {
                     player: ["phaseUseBegin","phaseUseEnd"],
@@ -1023,6 +1199,12 @@ export default function(){
             "jl_fange_info": "当你受到伤害后，你可以摸两张牌，然后获得伤害来源一至两张牌，再对伤害来源造成1~2点伤害。",
             "jl_xunlie": "寻猎",
             "jl_xunlie_info": "一名角色的回合结束时，你可以选择一项：令其回复1点体力并摸两张牌；或对其造成1点伤害并随机弃置两张牌。（每轮限触发两次）",
+            "jl_xiefang": "撷芳",
+            "jl_xiefang_info": "出牌阶段开始时，你可以获得以下效果：摸X张牌、此阶段计算与其他角色的距离-X、此阶段可以多使用X张【杀】，且【杀】的伤害+X（此阶段限触发2次），X为场上女性角色数+1。",
+            "jl_zhengnan": "征南",
+            "jl_zhengnan_info": "一名角色受到伤害后，若其体力值小于等于你，你可以摸1~3张牌，然后在“武圣”、“当先”、“制蛮”里选择并获得一个技能直到你的下个回合结束（每回合每名角色限触发一次），若未获得技能（已经选完）则你回复1点体力。",
+            "jl_dangxian": "当先",
+            "jl_dangxian_info": "锁定技，回合开始时，你执行一个额外的出牌阶段。此阶段开始时，你可以失去1点体力并获得一张【杀】。",
             "re_dclingxi": "灵犀",
             "re_dclingxi_info": "每轮开始时、出牌阶段开始和结束时，你可以将至多X张牌称为「翼」置于你的武将牌上（X为你的体力上限）。当你失去武将牌上的「翼」时，你将手牌数调整至Y张（Y为你武将牌上的「翼」所含有的花色数的两倍）。",
             "re_dczhifou": "知否",
@@ -1033,6 +1215,6 @@ export default function(){
     author: "nihility",
     diskURL: "",
     forumURL: "",
-    version: "1.5.1",
-},files:{"character":["jl_zhaoxiang.jpg","jl_zhangqiying.jpg","re_caoxian.jpg","jl_nianshou.jpg"],"card":[],"skill":[],"audio":[]}} 
+    version: "1.5.3",
+},files:{"character":["jl_zhaoxiang.jpg","jl_zhangqiying.jpg","re_caoxian.jpg","jl_nianshou.jpg","jl_guansuo.jpg"],"card":[],"skill":[],"audio":[]}} 
 };
