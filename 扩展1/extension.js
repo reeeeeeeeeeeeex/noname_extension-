@@ -187,7 +187,7 @@ export default function(){
                             var map = { "杀": "sha", "决斗": "juedou", "火攻": "huogong" };
                             var card = { name: map[result3.control], isCard: true };
                             if (target.isIn() && player.canUse(card, target, false)) {
-                                player.useCard(card, target, false);
+                                await player.useCard(card, target, false);
                             }
                             count++;
                         }
@@ -1432,6 +1432,6 @@ export default function(){
     author: "nihility",
     diskURL: "",
     forumURL: "",
-    version: "1.5.5",
+    version: "1.5.6",
 },files:{"character":["jl_guansuo.jpg","jl_zhangqiying.jpg","jl_caoying.jpg","jl_zhaoxiang.jpg","re_caoxian.jpg","jl_nianshou.jpg","jl_xiaoqiao.jpg"],"card":[],"skill":[],"audio":[]}} 
 };
