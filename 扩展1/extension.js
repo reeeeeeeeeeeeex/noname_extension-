@@ -88,6 +88,16 @@ export default function(){
                 skills: ["jl_lingren","jl_fujian"],
                 img: "extension/扩展1/jl_caoying.jpg",
                 hujia: 0,
+                dieAudios: ["ext:扩展1/audio/die/jl_caoying.mp3"],
+            },
+            "jl_xiaoqiao": {
+                sex: "female",
+                group: "wu",
+                hp: 4,
+                maxHp: 4,
+                skills: ["jl_tianxiang","jl_hongyan"],
+                img: "extension/扩展1/jl_xiaoqiao.jpg",
+                hujia: 0,
             },
         },
         translate: {
@@ -107,6 +117,8 @@ export default function(){
             "jl_guansuo_prefix": "将灵",
             "jl_caoying": "将灵曹婴",
             "jl_caoying_prefix": "将灵",
+            "jl_xiaoqiao": "将灵小乔",
+            "jl_xiaoqiao_prefix": "将灵",
             "扩展1": "扩展1",
         },
     },
@@ -1125,6 +1137,73 @@ export default function(){
                 "skill_id": "jl_fujian",
                 "_priority": 0,
             },
+            "jl_tianxiang": {
+                audio: "ext:扩展1:2",
+                trigger: {
+                    player: "damageBegin4",
+                },
+                usable: 2,
+                filter: function(event, player) {
+                    return event.num > 0 && player.countCards("h") > 0;
+                },
+                prompt: function(event, player) {
+                    return "是否发动「天香」弃置一张手牌防止此伤害，令一名其他角色失去1点体力并获得你弃置的牌？";
+                },
+                check: function(event, player) {
+                    return true;
+                },
+                async content(event, trigger, player) {
+                    var r1 = await player.chooseCard("h", true, "天香：弃置一张手牌").set("ai", function(card) {
+                        return 5 - get.value(card);
+                    }).forResult();
+                    if (!r1.bool) return;
+                    var r2 = await player.chooseTarget("天香：选择一名其他角色令其失去1点体力并获得弃置的牌", true, lib.filter.notMe)
+                        .set("ai", function(target) { return -get.attitude(_status.event.player, target); }).forResult();
+                    if (!r2.bool) return;
+                    var target = r2.targets[0];
+                    var card = r1.cards[0];
+                    trigger.cancel();
+                    player.logSkill("jl_tianxiang", target);
+                    await player.discard(card);
+                    target.loseHp();
+                    if (card.isInPile()) await target.gain(card, "gain2");
+                },
+                ai: {
+                    threaten: 1.5,
+                },
+                "skill_id": "jl_tianxiang",
+                "_priority": 0,
+            },
+            "jl_hongyan": {
+                audio: "ext:扩展1:2",
+                trigger: {
+                    player: "loseAfter",
+                },
+                usable: 3,
+                filter: function(event, player) {
+                    if (event.type != "discard" || event.getlx === false) return false;
+                    // 仅“你的牌”（手牌+装备区）被弃才触发，判定区不算
+                    var mine = (event.hs || []).concat(event.es || []);
+                    if (!mine.length) return false;
+                    return event.cards.some(function(card) {
+                        return mine.includes(card) && get.position(card, true) == "d";
+                    });
+                },
+                prompt: function(event, player) {
+                    return "是否发动「红颜」摸两张牌？";
+                },
+                check: function(event, player) {
+                    return true;
+                },
+                async content(event, trigger, player) {
+                    await player.draw(2);
+                },
+                ai: {
+                    threaten: 1.5,
+                },
+                "skill_id": "jl_hongyan",
+                "_priority": 0,
+            },
             "re_dclingxi": {
                 trigger: {
                     player: ["phaseUseBegin","phaseUseEnd"],
@@ -1339,6 +1418,10 @@ export default function(){
             "jl_lingren_info": "你使用【杀】或伤害类锦囊牌指定目标后，你可以选择其中一个目标使此牌对其伤害+1~2，然后你摸1~3张牌，并且你获得“奸雄”、“行殇”直到你下回合开始。（每回合限触发2次）",
             "jl_fujian": "伏间",
             "jl_fujian_info": "准备阶段或结束阶段，你可以观看一名其他角色的手牌，然后你可以获得其中至多两张牌，若颜色相同，对其造成1点伤害。",
+            "jl_tianxiang": "天香",
+            "jl_tianxiang_info": "当你受到伤害时，你可以弃置一张手牌，防止此次伤害并选择一名其他角色，令其失去1点体力，然后其获得你弃置的牌。（每回合限触发两次）",
+            "jl_hongyan": "红颜",
+            "jl_hongyan_info": "当你弃置你的牌时，你可以摸两张牌。（每回合限触发三次）",
             "re_dclingxi": "灵犀",
             "re_dclingxi_info": "每轮开始时、出牌阶段开始和结束时，你可以将至多X张牌称为「翼」置于你的武将牌上（X为你的体力上限）。当你失去武将牌上的「翼」时，你将手牌数调整至Y张（Y为你武将牌上的「翼」所含有的花色数的两倍）。",
             "re_dczhifou": "知否",
@@ -1349,6 +1432,6 @@ export default function(){
     author: "nihility",
     diskURL: "",
     forumURL: "",
-    version: "1.5.4",
-},files:{"character":["jl_guansuo.jpg","jl_zhangqiying.jpg","jl_zhaoxiang.jpg","re_caoxian.jpg","jl_nianshou.jpg","jl_caoying.jpg"],"card":[],"skill":[],"audio":[]}} 
+    version: "1.5.5",
+},files:{"character":["jl_guansuo.jpg","jl_zhangqiying.jpg","jl_caoying.jpg","jl_zhaoxiang.jpg","re_caoxian.jpg","jl_nianshou.jpg","jl_xiaoqiao.jpg"],"card":[],"skill":[],"audio":[]}} 
 };
