@@ -110,6 +110,16 @@ export default function(){
                 hujia: 0,
                 skills: ["reshen_tuoyu","reshen_xianjin","reshen_qijing"],
                 img: "extension/扩展1/reshen_dengai.jpg",
+                dieAudios: ["ext:扩展1/audio/die/reshen_dengai.mp3"],
+            },
+            "jl_shen_zhaoyun": {
+                sex: "male",
+                group: "shen",
+                hp: 3,
+                maxHp: 3,
+                hujia: 0,
+                skills: ["jl_juejing","jl_longhun"],
+                img: "extension/扩展1/jl_shen_zhaoyun.jpg",
             },
         },
         translate: {
@@ -133,6 +143,8 @@ export default function(){
             "jl_xiaoqiao_prefix": "将灵",
             "reshen_dengai": "界神邓艾",
             "reshen_dengai_prefix": "界|神",
+            "jl_shen_zhaoyun": "将灵神赵云",
+            "jl_shen_zhaoyun_prefix": "将灵|神",
             "扩展1": "扩展1",
         },
     },
@@ -1916,6 +1928,96 @@ export default function(){
                 "skill_id": "reshen_cuixin",
                 "_priority": 0,
             },
+            "jl_juejing": {
+                audio: "ext:扩展1:2",
+                trigger: {
+                    player: ["phaseZhunbeiBegin","phaseJieshuBegin","dying","dyingAfter"],
+                },
+                usable: 3,
+                filter(event, player, name) {
+                    return player.isIn();
+                },
+                prompt(event, player, name) {
+                    if (name == "dying") return "绝境：是否摸2~4张牌并回复1点体力以脱离濒死？";
+                    if (name == "dyingAfter") return "绝境：是否摸2~4张牌并回复1点体力？";
+                    return "绝境：是否摸2~4张牌并回复1点体力？";
+                },
+                check(event, player) {
+                    return player.hp < player.maxHp || player.countCards("h") < 4;
+                },
+                async content(event, trigger, player) {
+                    var r = await player.chooseControl("2张", "3张", "4张").set("prompt", "绝境：选择摸牌数").set("ai", function() {
+                        var player = _status.event.player;
+                        return player.hp <= 1 ? 2 : (player.countCards("h") < 3 ? 2 : 0);
+                    }).forResult();
+                    var map = { "2张": 2, "3张": 3, "4张": 4 };
+                    var n = map[r.control] || 2;
+                    await player.draw(n);
+                    if (player.isDamaged()) await player.recover(1);
+                },
+                ai: {
+                    threaten: 1.5,
+                },
+                "skill_id": "jl_juejing",
+                "_priority": 0,
+            },
+            "jl_longhun": {
+                audio: "ext:扩展1:2",
+                group: ["jl_longhun_buff","jl_longhun_gain"],
+                "skill_id": "jl_longhun",
+                "_priority": 0,
+            },
+            "jl_longhun_buff": {
+                audio: "ext:扩展1:2",
+                trigger: {
+                    player: "useCard",
+                },
+                filter(event, player) {
+                    return (event.card.name == "sha" || event.card.name == "tao");
+                },
+                prompt(event, player) {
+                    return "龙魂：是否令此" + get.translation(event.card) + (event.card.name == "sha" ? "的伤害值" : "的回复值") + "+1~3？";
+                },
+                check(event, player) { return true; },
+                async content(event, trigger, player) {
+                    var r = await player.chooseControl("+1", "+2", "+3").set("prompt", "龙魂：选择增加的数值").set("ai", function() {
+                        return 0;
+                    }).forResult();
+                    var map = { "+1": 1, "+2": 2, "+3": 3 };
+                    var n = map[r.control] || 1;
+                    trigger.baseDamage += n;
+                    game.log(player, "发动龙魂，令", trigger.card, (trigger.card.name == "sha" ? "伤害值" : "回复值"), "+", n);
+                },
+                sub: true,
+                sourceSkill: "jl_longhun",
+                "skill_id": "jl_longhun_buff",
+                "_priority": 0,
+            },
+            "jl_longhun_gain": {
+                audio: "ext:扩展1:2",
+                trigger: {
+                    player: ["useCardAfter","respondAfter"],
+                },
+                filter(event, player) {
+                    if (event.card.name != "shan" && event.card.name != "wuxie") return false;
+                    var target = _status.currentPhase;
+                    if (!target || target == player || !target.isIn()) return false;
+                    return target.countGainableCards(player, "he") > 0;
+                },
+                prompt(event, player) {
+                    return "龙魂：是否获得" + get.translation(_status.currentPhase) + "至多两张牌？";
+                },
+                check(event, player) { return get.attitude(player, _status.currentPhase) < 0; },
+                async content(event, trigger, player) {
+                    var target = _status.currentPhase;
+                    player.line(target, "green");
+                    await player.gainPlayerCard(target, "he", [1, 2], true);
+                },
+                sub: true,
+                sourceSkill: "jl_longhun",
+                "skill_id": "jl_longhun_gain",
+                "_priority": 0,
+            },
         },
         translate: {
             "ext1_mocansi": "魔残肆",
@@ -1966,6 +2068,10 @@ export default function(){
             "reshen_qijing_info": "觉醒技。一名角色的回合结束后，若你的三个副区域标签均被激活，则你减1点体力上限，获得〖摧心〗，将座位移动至两名相邻的其他角色之间并执行一个额外回合。",
             "reshen_cuixin": "摧心",
             "reshen_cuixin_info": "当你不因此技能使用的基本牌或普通锦囊牌结算结束后，若此牌的目标于你使用此牌指定第一个目标时包含你的上家或下家，则你可以视为对下家或上家再使用一张牌名和元素相同的牌。",
+            "jl_juejing": "绝境",
+            "jl_juejing_info": "准备阶段、结束阶段或当你进入或脱离濒死状态时，你可以摸二至四张牌并回复1点体力（每回合限三次）。",
+            "jl_longhun": "龙魂",
+            "jl_longhun_info": "你使用【杀】或【桃】时，可以令此牌伤害或回复值+1~3，且你使用【闪】或【无懈可击】时，可以获得当前回合角色至多两张牌。",
             "reshen_tuoyu_fengtian": "丰田",
             "reshen_tuoyu_qingqu": "清渠",
             "reshen_tuoyu_junshan": "峻山",
@@ -1978,6 +2084,6 @@ export default function(){
     author: "nihility",
     diskURL: "",
     forumURL: "",
-    version: "1.5.8",
-},files:{"character":["jl_guansuo.jpg","jl_zhaoxiang.jpg","jl_zhangqiying.jpg","jl_xiaoqiao.jpg","jl_caoying.jpg","re_caoxian.jpg","jl_nianshou.jpg","reshen_dengai.jpg"],"card":[],"skill":[],"audio":[]}} 
+    version: "1.5.9",
+},files:{"character":["jl_guansuo.jpg","jl_zhangqiying.jpg","jl_xiaoqiao.jpg","jl_zhaoxiang.jpg","jl_caoying.jpg","reshen_dengai.jpg","re_caoxian.jpg","jl_nianshou.jpg","jl_shen_zhaoyun.jpg"],"card":[],"skill":[],"audio":[]}} 
 };
