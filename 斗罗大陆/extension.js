@@ -627,6 +627,6 @@ export default function(){
     author: "nihility",
     diskURL: "",
     forumURL: "",
-    version: "1.2",
+    version: "1.2.1",
 },files:{"character":["dl_huoyuhao.jpg"],"card":[],"skill":[],"audio":[]}} 
 };
