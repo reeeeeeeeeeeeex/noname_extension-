@@ -13,15 +13,15 @@ export default function(){
 },help:{},config:{},package:{
     character: {
         character: {
-            "界笮融": {
+            "mozarong": {
                 sex: "male",
-                group: "devil",
+                group: "",
                 hp: 4,
                 maxHp: 4,
                 hujia: 0,
                 skills: ["ext1_mocansi","ext1_mofozong"],
-                img: "extension/扩展1/mozarong.jpg",
-                dieAudios: ["ext:扩展1/audio/die/界笮融.mp3"],
+                img: "extension/扩展1/mozarong.gif",
+                dieAudios: ["ext:扩展1/audio/die/mozarong.mp3"],
             },
             "jl_caochun": {
                 sex: "male",
@@ -120,11 +120,12 @@ export default function(){
                 hujia: 0,
                 skills: ["jl_juejing","jl_longhun"],
                 img: "extension/扩展1/jl_shen_zhaoyun.jpg",
+                dieAudios: ["ext:扩展1/audio/die/jl_shen_zhaoyun.mp3"],
             },
         },
         translate: {
-            "界笮融": "魔笮融",
-            "界笮融_prefix": "魔",
+            "mozarong": "魔笮融",
+            "mozarong_prefix": "魔",
             "jl_caochun": "将灵曹纯",
             "jl_caochun_prefix": "将灵",
             "re_caoxian": "界曹宪",
@@ -2085,5 +2086,5 @@ export default function(){
     diskURL: "",
     forumURL: "",
     version: "1.5.9",
-},files:{"character":["jl_guansuo.jpg","jl_zhangqiying.jpg","jl_xiaoqiao.jpg","jl_zhaoxiang.jpg","jl_caoying.jpg","reshen_dengai.jpg","re_caoxian.jpg","jl_nianshou.jpg","jl_shen_zhaoyun.jpg"],"card":[],"skill":[],"audio":[]}} 
+},files:{"character":["mozarong.gif","jl_guansuo.jpg","reshen_dengai.jpg","jl_xiaoqiao.jpg","jl_caoying.jpg","jl_zhangqiying.jpg","jl_zhaoxiang.jpg","re_caoxian.jpg","jl_shen_zhaoyun.jpg","jl_nianshou.jpg"],"card":[],"skill":[],"audio":[]}} 
 };
