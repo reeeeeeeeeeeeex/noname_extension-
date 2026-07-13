@@ -290,21 +290,19 @@ export default function(){
                 trigger: {
                     source: "damageEnd",
                 },
-                direct: true,
+                prompt: function(event, player) {
+                    return “是否发动「冰邪」，令” + get.translation(event.player) + “获得一枚「寒」标记？”;
+                },
+                check: function(event, player) {
+                    return get.attitude(player, event.player) < 0;
+                },
                 filter: function(event, player) {
                     return event.player && event.player.isIn() && event.player != player;
                 },
-                content: function() {
-                    'step 0'
-                    player.chooseBool(get.prompt("dl_bingxie", trigger.player), "令其获得一枚“寒”标记？").set("ai", function() {
-                        return get.attitude(player, trigger.player) < 0;
-                    });
-                    'step 1'
-                    if (result.bool) {
-                        player.logSkill("dl_bingxie", trigger.player);
-                        trigger.player.addSkill("dl_han");
-                        trigger.player.addMark("dl_han", 1);
-                    }
+                async content(event, trigger, player) {
+                    player.logSkill(“dl_bingxie”, trigger.player);
+                    trigger.player.addSkill(“dl_han”);
+                    trigger.player.addMark(“dl_han”, 1);
                 },
                 "skill_id": "dl_bingxie_han",
                 "_priority": 0,
@@ -407,13 +405,11 @@ export default function(){
                 filter: function(event, player) {
                     return player.countMark("dl_han") > 0;
                 },
-                content: function() {
-                    'step 0'
+                async content(event, trigger, player) {
                     var cards = player.getCards("he");
                     if (cards.length) {
-                        player.modedDiscard(cards);
+                        await player.modedDiscard(cards);
                     }
-                    'step 1'
                     // 弃牌阶段只移除一枚「寒」标记；归零才彻底失去寒，否则下回合继续生效
                     player.removeMark("dl_han", 1);
                     if (player.countMark("dl_han") <= 0) {
@@ -631,6 +627,6 @@ export default function(){
     author: "nihility",
     diskURL: "",
     forumURL: "",
-    version: "1.1",
+    version: "1.2",
 },files:{"character":["dl_huoyuhao.jpg"],"card":[],"skill":[],"audio":[]}} 
 };

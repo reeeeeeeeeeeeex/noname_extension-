@@ -484,10 +484,8 @@ export default function(){
                 filter: function(event, player) {
                     return Math.floor(player.hp / 2) > 0;
                 },
-                content: function() {
-                    'step 0'
-                    player.loseHp(Math.floor(player.hp / 2));
-                    'step 1'
+                async content(event, trigger, player) {
+                    await player.loseHp(Math.floor(player.hp / 2));
                     player.addTempSkill('dieyin_effect', {player: 'phaseAfter'});
                     if (!player.storage.dieyin_count) player.storage.dieyin_count = 0;
                     player.storage.dieyin_count++;
@@ -513,18 +511,15 @@ export default function(){
                 filter: function(event, player) {
                     return event.player.isAlive();
                 },
-                content: function() {
-                    'step 0'
-                    player.chooseBool('是否发动【丧葬】火化' + get.translation(trigger.player) + '？').set('ai', function() {
+                async content(event, trigger, player) {
+                    var result = await player.chooseBool('是否发动【丧葬】火化' + get.translation(trigger.player) + '？').set('ai', function() {
                         return get.attitude(player, trigger.player) < 0 ? 1 : 0;
-                    });
-                    'step 1'
+                    }).forResult();
+                    player.logSkill('sangzang');
                     if (result.bool) {
                         trigger.player.die();
-                        player.logSkill('sangzang');
                     } else {
                         player.addMark("anmi", 1);
-                        player.logSkill('sangzang');
                     }
                 },
                 "skill_id": "sangzang",
@@ -546,19 +541,16 @@ export default function(){
                 filter: function(event, player) {
                     return player.countMark("anmi") > 0;
                 },
-                content: function() {
-                    'step 0'
-                    player.chooseTarget([1, 5], '安神秘法：对至多5名角色各造成1点火焰伤害', true).set('ai', function(target) {
+                async content(event, trigger, player) {
+                    var result = await player.chooseTarget([1, 5], '安神秘法：对至多5名角色各造成1点火焰伤害', true).set('ai', function(target) {
                         return get.damageEffect(target, player, player, 'fire');
-                    });
-                    'step 1'
+                    }).forResult();
                     if (result.bool) {
-                        event._targets = result.targets;
-                        event._targets.sortBySeat();
-                        for (var i = 0; i < event._targets.length; i++) {
-                            event._targets[i].damage(1, 'fire');
+                        var targets = result.targets.sortBySeat();
+                        for (var i = 0; i < targets.length; i++) {
+                            targets[i].damage(1, 'fire');
                         }
-                        player.recover(event._targets.length);
+                        player.recover(targets.length);
                     }
                     player.removeMark("anmi", 1);
                     player.logSkill('anmi');
@@ -747,24 +739,20 @@ export default function(){
                 trigger: {
                     player: "phaseJieshuBegin",
                 },
-                direct: true,
+                prompt: "重置你的限定技【天星】",
+                check: function(event, player) {
+                    return true;
+                },
                 init: function(player) {
                     player.storage.bingxu_count = 0;
                 },
                 filter: function(event, player) {
                     return player.storage.bingxu_count >= 2 && player.awakenedSkills && player.awakenedSkills.includes("zhongli_tianxing");
                 },
-                content: function() {
-                    'step 0'
-                    player.chooseBool(get.prompt("bingxu"), "重置你的限定技【天星】").set("ai", function() {
-                        return true;
-                    });
-                    'step 1'
-                    if (result.bool) {
-                        player.storage.bingxu_count = 0;
-                        player.logSkill("bingxu");
-                        player.restoreSkill("zhongli_tianxing");
-                    }
+                async content(event, trigger, player) {
+                    player.storage.bingxu_count = 0;
+                    player.logSkill("bingxu");
+                    player.restoreSkill("zhongli_tianxing");
                 },
                 group: "bingxu_count",
                 "skill_id": "bingxu",
@@ -1059,13 +1047,11 @@ export default function(){
                 filter: function(event, player) {
                     return player.countMark("ying_han") > 0;
                 },
-                content: function() {
-                    "step 0"
+                async content(event, trigger, player) {
                     var cards = player.getCards("he");
                     if (cards.length) {
-                        player.modedDiscard(cards);
+                        await player.modedDiscard(cards);
                     }
-                    "step 1"
                     player.clearMark("ying_han");
                     player.removeSkill("ying_han");
                 },
@@ -1195,7 +1181,7 @@ export default function(){
                 filter: function(event, player) {
                     return event.card && event.card.name;
                 },
-                content: function() {
+                async content(event, trigger, player) {
                     trigger.directHit.addArray(game.filterPlayer(function(current) {
                         return current != player;
                     }));
@@ -1257,7 +1243,7 @@ export default function(){
                 filter: function(event, player) {
                     return event.player && event.player.isIn() && event.player.name != "qiuqiuren";
                 },
-                content: function() {
+                async content(event, trigger, player) {
                     trigger.player.reinit(trigger.player.name, "qiuqiuren");
                     // reinit 不更新 group，手动设为丘丘人的「群」
                     trigger.player.group = lib.character.qiuqiuren[1];
@@ -1316,6 +1302,6 @@ export default function(){
     author: "nihility",
     diskURL: "",
     forumURL: "",
-    version: "1.3",
+    version: "1.4",
 },files:{"character":["hutao.jpg","ying_gs.jpg","shen_xiao.jpg","zhongli.jpg","qiuqiuren.jpg"],"card":[],"skill":[],"audio":[]}} 
 };
