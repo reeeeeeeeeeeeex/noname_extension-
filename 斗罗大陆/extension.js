@@ -291,7 +291,7 @@ export default function(){
                     source: "damageEnd",
                 },
                 prompt: function(event, player) {
-                    return “是否发动「冰邪」，令” + get.translation(event.player) + “获得一枚「寒」标记？”;
+                    return "是否发动「冰邪」，令" + get.translation(event.player) + "获得一枚「寒」标记？";
                 },
                 check: function(event, player) {
                     return get.attitude(player, event.player) < 0;
@@ -300,9 +300,9 @@ export default function(){
                     return event.player && event.player.isIn() && event.player != player;
                 },
                 async content(event, trigger, player) {
-                    player.logSkill(“dl_bingxie”, trigger.player);
-                    trigger.player.addSkill(“dl_han”);
-                    trigger.player.addMark(“dl_han”, 1);
+                    player.logSkill("dl_bingxie", trigger.player);
+                    trigger.player.addSkill("dl_han");
+                    trigger.player.addMark("dl_han", 1);
                 },
                 "skill_id": "dl_bingxie_han",
                 "_priority": 0,
