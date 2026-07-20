@@ -682,35 +682,21 @@ export default function(){
                 filter: function(event, player) {
                     return !player.storage.zhongli_tianxing;
                 },
-                content: function() {
-                    'step 0'
-                    player.chooseTarget([1, Infinity], '天星：请选择任意名角色', true).set('ai', function(target) {
+                async content(event, trigger, player) {
+                    var result = await player.chooseTarget([1, Infinity], '天星：请选择任意名角色', true).set('ai', function(target) {
                         var player = _status.event.player;
                         return get.damageEffect(target, player, player);
-                    });
-                    'step 1'
-                    if (result.bool) {
-                        event.targets = result.targets;
-                        event.targets.sortBySeat();
-                        event._index = 0;
-                        player.awakenSkill('zhongli_tianxing');
-                        player.logSkill('zhongli_tianxing', event.targets);
-                    } else {
-                        event.finish();
-                    }
-                    'step 2'
-                    if (event._index >= event.targets.length) {
-                        event.finish();
-                    } else {
-                        event._target = event.targets[event._index];
-                        if (event._target.isIn()) {
-                            event._target.addSkill('shihua');
+                    }).forResult();
+                    if (!result.bool) return;
+                    var targets = result.targets.sortBySeat();
+                    player.awakenSkill('zhongli_tianxing');
+                    player.logSkill('zhongli_tianxing', targets);
+                    for (var target of targets) {
+                        if (target.isIn()) {
+                            target.addSkill('shihua');
+                            await target.damage(3);
                         }
-                        event._target.damage(3);
                     }
-                    'step 3'
-                    event._index++;
-                    event.goto(2);
                 },
                 ai: {
                     order: 10,
@@ -1282,6 +1268,6 @@ export default function(){
     author: "nihility",
     diskURL: "",
     forumURL: "",
-    version: "1.5.1",
+    version: "1.5.2",
 },files:{"character":["hutao.jpg","ying_gs.jpg","shen_xiao.jpg","zhongli.jpg","qiuqiuren.jpg"],"card":[],"skill":[],"audio":[]}} 
 };
