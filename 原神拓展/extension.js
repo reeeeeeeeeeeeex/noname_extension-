@@ -176,7 +176,7 @@ export default function(){
                 async content(event, trigger, player) {
                     await player.loseHp(1);
                     await player.draw(5);
-                    player.gainMaxHp(1);
+                    await player.gainMaxHp(1);
                     player.addTempSkill('nuowu_buff', {player: 'phaseBegin'});
                     player.logSkill('nuowu');
                 },
@@ -281,7 +281,7 @@ export default function(){
                     player: "dyingBegin",
                 },
                 async content(event, trigger, player) {
-                    player.recover(player.maxHp - player.hp);
+                    await player.recover(player.maxHp - player.hp);
                     var result = await player.chooseTarget('请选择【动情】的目标', true).set('ai', function(target) {
                         return get.attitude(player, target);
                     }).forResult();
@@ -427,7 +427,7 @@ export default function(){
                     return t && event.player == t;
                 },
                 async content(event, trigger, player) {
-                    player.lose(player.getCards('he'), true);
+                    await player.lose(player.getCards('he'), true);
                     player.removeSkill('dongqing');
                 },
                 "skill_id": "dongqing_die",
@@ -517,7 +517,7 @@ export default function(){
                     }).forResult();
                     player.logSkill('sangzang');
                     if (result.bool) {
-                        trigger.player.die();
+                        await trigger.player.die();
                     } else {
                         player.addMark("anmi", 1);
                     }
@@ -547,10 +547,10 @@ export default function(){
                     }).forResult();
                     if (result.bool) {
                         var targets = result.targets.sortBySeat();
-                        for (var i = 0; i < targets.length; i++) {
-                            targets[i].damage(1, 'fire');
+                        for (var target of targets) {
+                            await target.damage(1, 'fire');
                         }
-                        player.recover(targets.length);
+                        await player.recover(targets.length);
                     }
                     player.removeMark("anmi", 1);
                     player.logSkill('anmi');
@@ -1302,6 +1302,6 @@ export default function(){
     author: "nihility",
     diskURL: "",
     forumURL: "",
-    version: "1.4",
+    version: "1.4.1",
 },files:{"character":["hutao.jpg","ying_gs.jpg","shen_xiao.jpg","zhongli.jpg","qiuqiuren.jpg"],"card":[],"skill":[],"audio":[]}} 
 };

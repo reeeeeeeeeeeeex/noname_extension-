@@ -168,7 +168,7 @@ export default function(){
                 },
                 prompt: "魔残肆：你可以回复1点体力",
                 async content(event, trigger, player) {
-                    player.recover();
+                    await player.recover();
                     if (!game.hasPlayer(current => current != player)) return;
                     var result = await player.chooseBool("是否继续发动【魔残肆】，令一名其他角色回复1点体力并视为对其使用三张虚拟牌？").set("ai", function() {
                         return game.hasPlayer(function(target) {
@@ -186,7 +186,7 @@ export default function(){
                     event.target = target;
                     var count = 0;
                     player.line(target, "fire");
-                    target.recover();
+                    await target.recover();
                     player.addTempSkill("ext1_mocansi_draw");
                     try {
                         while (count < 3 && target.isIn()) {
@@ -497,16 +497,17 @@ export default function(){
                         }
                     }
                     if (!sameNum) return;
-                    player.recover();
+                    await player.recover();
                     if (!game.hasPlayer(function(current) { return current != player; })) return;
                     var result = await player.chooseTarget("法箓：选择至多两名其他角色各造成1点伤害", [1, 2], lib.filter.notMe)
                         .set("ai", function(target) {
                             return get.attitude(_status.event.player, target) < 0 ? 1 : 0;
                         }).forResult();
                     if (result.bool) {
-                        for (var i = 0; i < result.targets.length; i++) {
-                            player.line(result.targets[i], "fire");
-                            result.targets[i].damage(1, player);
+                        var targets = result.targets.sortBySeat();
+                        for (var target of targets) {
+                            player.line(target, "fire");
+                            await target.damage(1, player);
                         }
                     }
                 },
@@ -615,7 +616,7 @@ export default function(){
                             cards[j] = temp;
                         }
                         var num = Math.min(2, cards.length);
-                        source.discard(cards.slice(0, num));
+                        await source.discard(cards.slice(0, num));
                     }
                     player.logSkill("jl_zhenyi", source);
                 },
@@ -2085,6 +2086,6 @@ export default function(){
     author: "nihility",
     diskURL: "",
     forumURL: "",
-    version: "1.5.9",
+    version: "1.5.10",
 },files:{"character":["mozarong.gif","jl_guansuo.jpg","reshen_dengai.jpg","jl_xiaoqiao.jpg","jl_caoying.jpg","jl_zhangqiying.jpg","jl_zhaoxiang.jpg","re_caoxian.jpg","jl_shen_zhaoyun.jpg","jl_nianshou.jpg"],"card":[],"skill":[],"audio":[]}} 
 };
