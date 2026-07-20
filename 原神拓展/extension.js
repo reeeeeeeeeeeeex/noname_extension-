@@ -445,34 +445,28 @@ export default function(){
                 filter: function(event, player) {
                     return event.source == player;
                 },
-                content: function() {
-                    'step 0'
-                    player.loseMaxHp(1);
-                    'step 1'
+                async content(event, trigger, player) {
+                    await player.loseMaxHp(1);
                     player.addMark("yezhang", 1);
-                    if (player.countMark("yezhang") >= 2) {
-                        event._hasMusic = game.hasPlayer(function(current) {
-                            if (!current.isAlive()) return false;
-                            var text = get.translation(current.name);
-                            var skills = current.getSkills();
-                            for (var i = 0; i < skills.length; i++) {
-                                text += get.translation(skills[i]);
-                            }
-                            var keys = '琴笙歌音笛箫律筝弦';
-                            for (var j = 0; j < keys.length; j++) {
-                                if (text.indexOf(keys[j]) !== -1) return true;
-                            }
-                            return false;
-                        });
-                    } else {
-                        event.finish();
-                    }
-                    'step 2'
-                    if (event._hasMusic) {
-                        player.recover(player.maxHp - player.hp);
+                    if (player.countMark("yezhang") < 2) return;
+                    var hasMusic = game.hasPlayer(function(current) {
+                        if (!current.isAlive()) return false;
+                        var text = get.translation(current.name);
+                        var skills = current.getSkills();
+                        for (var i = 0; i < skills.length; i++) {
+                            text += get.translation(skills[i]);
+                        }
+                        var keys = '琴笙歌音笛箫律筝弦';
+                        for (var j = 0; j < keys.length; j++) {
+                            if (text.indexOf(keys[j]) !== -1) return true;
+                        }
+                        return false;
+                    });
+                    if (hasMusic) {
+                        await player.recover(player.maxHp - player.hp);
                         player.removeMark("yezhang", player.countMark("yezhang"));
                     } else {
-                        player.loseHp(player.hp);
+                        await player.loseHp(player.hp);
                     }
                 },
                 "skill_id": "yezhang",
@@ -1064,38 +1058,27 @@ export default function(){
                     player: "phaseBefore",
                 },
                 direct: true,
-                content: function() {
-                    "step 0"
+                async content(event, trigger, player) {
                     var dialog = ui.create.characterDialog("heightset", function(name) {
                         if (!lib.character[name] || !lib.character[name].skills || !lib.character[name].skills.length) return true;
                         if (name == "ying_gs" || name == "qiuqiuren") return true;
                         return false;
                     });
-                    player.chooseButton(dialog, true).set("prompt", "人界力：请选择一名武将").set("ai", function(button) {
+                    var characterResult = await player.chooseButton(dialog, true).set("prompt", "人界力：请选择一名武将").set("ai", function(button) {
                         return 1;
-                    });
-                    "step 1"
-                    if (!result.bool || !result.links || !result.links.length) {
-                        event.finish();
-                        return;
-                    }
-                    var charName = result.links[0];
+                    }).forResult();
+                    if (!characterResult.bool || !characterResult.links || !characterResult.links.length) return;
+                    var charName = characterResult.links[0];
                     var skills = lib.character[charName].skills || [];
-                    if (!skills.length) {
-                        event.finish();
-                        return;
-                    }
+                    if (!skills.length) return;
                     var skillNames = skills.map(function(s) { return get.translation(s) || s; });
-                    player.chooseControl(skillNames).set("prompt", "人界力：选择获得【" + get.translation(charName) + "】的一个技能").set("choiceList", skills.map(function(s) {
+                    var skillResult = await player.chooseControl(skillNames).set("prompt", "人界力：选择获得【" + get.translation(charName) + "】的一个技能").set("choiceList", skills.map(function(s) {
                         return (get.translation(s) || s) + "：" + (lib.translate[s + "_info"] || "无描述");
                     })).set("ai", function() {
                         return 0;
-                    });
-                    event._skills = skills;
-                    "step 2"
-                    if (result.control) {
-                        var idx = result.index;
-                        var skill = event._skills[idx];
+                    }).forResult();
+                    if (skillResult.control) {
+                        var skill = skills[skillResult.index];
                         player.addSkill(skill);
                         player.popup(skill);
                         game.log(player, "获得了技能", "#g【" + get.translation(skill) + "】");
@@ -1302,6 +1285,6 @@ export default function(){
     author: "nihility",
     diskURL: "",
     forumURL: "",
-    version: "1.4.1",
+    version: "1.5.0",
 },files:{"character":["hutao.jpg","ying_gs.jpg","shen_xiao.jpg","zhongli.jpg","qiuqiuren.jpg"],"card":[],"skill":[],"audio":[]}} 
 };

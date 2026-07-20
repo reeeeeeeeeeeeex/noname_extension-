@@ -539,36 +539,22 @@ export default function(){
                 filter: function(event, player) {
                     return player.countMark("dl_bingdi") > 0;
                 },
-                content: function() {
-                    'step 0'
-                    player.chooseTarget([0, Infinity], "冰帝降临：选择任意名角色获得「寒」标记（可不选）", false).set("ai", function(target) {
+                async content(event, trigger, player) {
+                    var result = await player.chooseTarget([0, Infinity], "冰帝降临：选择任意名角色获得「寒」标记（可不选）", false).set("ai", function(target) {
                         return -get.attitude(_status.event.player, target);
-                    });
-                    'step 1'
-                    if (result.bool) {
-                        event.targets = result.targets || [];
-                        event.targets.sortBySeat();
-                        event._index = 0;
-                        player.removeMark("dl_bingdi", 1);
-                        player.logSkill("dl_bingdi");
-                    } else {
-                        event.finish();
-                    }
-                    'step 2'
-                    if (event._index >= event.targets.length) {
-                        player.changeHujia(5);
-                        player.addTempSkill("dl_bingdi_dmg", { player: "phaseBegin" });
-                        event.finish();
-                    } else {
-                        event._target = event.targets[event._index];
-                        if (event._target.isIn()) {
-                            event._target.addSkill("dl_han");
-                            if (!event._target.countMark("dl_han")) event._target.addMark("dl_han", 1);
+                    }).forResult();
+                    if (!result.bool) return;
+                    var targets = (result.targets || []).sortBySeat();
+                    player.removeMark("dl_bingdi", 1);
+                    player.logSkill("dl_bingdi");
+                    for (var target of targets) {
+                        if (target.isIn()) {
+                            target.addSkill("dl_han");
+                            if (!target.countMark("dl_han")) target.addMark("dl_han", 1);
                         }
                     }
-                    'step 3'
-                    event._index++;
-                    event.goto(2);
+                    await player.changeHujia(5);
+                    player.addTempSkill("dl_bingdi_dmg", { player: "phaseBegin" });
                 },
                 ai: {
                     order: 9,
@@ -627,6 +613,6 @@ export default function(){
     author: "nihility",
     diskURL: "",
     forumURL: "",
-    version: "1.2.1",
+    version: "1.3.0",
 },files:{"character":["dl_huoyuhao.jpg"],"card":[],"skill":[],"audio":[]}} 
 };

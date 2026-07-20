@@ -289,54 +289,39 @@ export default function(){
                     markcount: "expansion",
                     content: "expansion",
                 },
-                content: function() {
-                    'step 0'
-                    event.target = event.targets && event.targets.length ? event.targets[0] : trigger.player;
-                    if (!event.target || !event.target.isIn() || event.target == player || event.target.countCards("h") <= 7) {
-                        event.finish();
-                        return;
-                    }
-                    event.num = event.target.countCards("h") - 7;
-                    event.target.chooseCard("魔佛宗：将" + get.cnNumber(event.num) + "张手牌置于武将牌上", true, event.num).set("ai", function(card) {
+                async content(event, trigger, player) {
+                    var target = event.targets && event.targets.length ? event.targets[0] : trigger.player;
+                    if (!target || !target.isIn() || target == player || target.countCards("h") <= 7) return;
+                    var num = target.countCards("h") - 7;
+                    var cardResult = await target.chooseCard("魔佛宗：将" + get.cnNumber(num) + "张手牌置于武将牌上", true, num).set("ai", function(card) {
                         return -get.value(card);
-                    });
-                    'step 1'
-                    if (result.bool && result.cards && result.cards.length) {
-                        player.logSkill("ext1_mofozong", event.target);
-                        player.line(event.target);
-                        event.placed = true;
-                        event.target.addToExpansion(result.cards, event.target, "give").gaintag.add("ext1_mofozong");
-                    } else {
-                        event.finish();
-                    }
-                    'step 2'
-                    var target = event.target;
+                    }).forResult();
+                    if (!cardResult.bool || !cardResult.cards || !cardResult.cards.length) return;
+                    player.logSkill("ext1_mofozong", target);
+                    player.line(target);
+                    var expansionEvent = target.addToExpansion(cardResult.cards, target, "give");
+                    expansionEvent.gaintag.add("ext1_mofozong");
+                    await expansionEvent;
+                    if (!target.isIn() || target.getExpansions("ext1_mofozong").length < 7) return;
+                    var choiceResult = await player.chooseControl("获得所有牌并令其回复1点体力", "令其失去1点体力").set("prompt", "魔佛宗：选择一项").set("choiceList", [
+                        "获得" + get.translation(target) + "武将牌上的所有“魔佛宗”牌并令其回复1点体力",
+                        "令" + get.translation(target) + "失去1点体力"
+                    ]).set("target", target).set("ai", function() {
+                        var player = _status.event.player;
+                        var target = _status.event.target;
+                        if (get.attitude(player, target) > 0) return "获得所有牌并令其回复1点体力";
+                        return "令其失去1点体力";
+                    }).forResult();
                     var cards = target.getExpansions("ext1_mofozong");
-                    if (!event.placed || !target.isIn() || cards.length < 7) {
-                        event.finish();
-                    } else {
-                        player.chooseControl("获得所有牌并令其回复1点体力", "令其失去1点体力").set("prompt", "魔佛宗：选择一项").set("choiceList", [
-                            "获得" + get.translation(target) + "武将牌上的所有“魔佛宗”牌并令其回复1点体力",
-                            "令" + get.translation(target) + "失去1点体力"
-                        ]).set("ai", function() {
-                            var player = _status.event.player;
-                            var target = _status.event.getParent().target;
-                            if (get.attitude(player, target) > 0) return "获得所有牌并令其回复1点体力";
-                            return "令其失去1点体力";
-                        });
-                    }
-                    'step 3'
-                    var target = event.target;
-                    var cards = target.getExpansions("ext1_mofozong");
-                    if (result.control == "获得所有牌并令其回复1点体力") {
+                    if (choiceResult.control == "获得所有牌并令其回复1点体力") {
                         if (cards.length) {
-                            player.gain(cards, target, "give");
+                            await player.gain(cards, target, "give");
                         }
                         if (target.isIn()) {
-                            target.recover(player);
+                            await target.recover(player);
                         }
                     } else if (target.isIn()) {
-                        target.loseHp();
+                        await target.loseHp();
                     }
                 },
                 ai: {
@@ -352,33 +337,17 @@ export default function(){
                     global: "phaseBegin",
                 },
                 frequent: true,
-                content: function() {
-                    'step 0'
-                    player.chooseBool(get.prompt("jl_shanjia")).set('ai', function() { return true; });
-                    'step 1'
-                    if (result.bool) {
-                        player.chooseControl('2张', '3张', '4张').set('prompt', '请选择摸牌数量').set('ai', function() { return 2; });
-                    } else {
-                        event.finish();
-                    }
-                    'step 2'
-                    player.draw(result.index + 2);
+                async content(event, trigger, player) {
+                    var drawResult = await player.chooseControl('2张', '3张', '4张').set('prompt', '请选择摸牌数量').set('ai', function() { return 2; }).forResult();
+                    await player.draw(drawResult.index + 2);
                     player.logSkill('jl_shanjia');
-                    if (trigger.player == player) {
-                        player.chooseBool('是否视为使用一张无视距离、不可响应且伤害自选的【杀】？').set('ai', function() { return true; });
-                    } else {
-                        event.finish();
-                    }
-                    'step 3'
-                    if (result.bool) {
-                        player.chooseControl('+1', '+2').set('prompt', '请选择伤害增加量').set('ai', function() { return 1; });
-                    } else {
-                        event.finish();
-                    }
-                    'step 4'
-                    player.storage.jl_shanjia_dmg = result.index + 1;
+                    if (trigger.player != player) return;
+                    var useResult = await player.chooseBool('是否视为使用一张无视距离、不可响应且伤害自选的【杀】？').set('ai', function() { return true; }).forResult();
+                    if (!useResult.bool) return;
+                    var damageResult = await player.chooseControl('+1', '+2').set('prompt', '请选择伤害增加量').set('ai', function() { return 1; }).forResult();
+                    player.storage.jl_shanjia_dmg = damageResult.index + 1;
                     player.addTempSkill('jl_shanjia_effect', 'phaseAfter');
-                    player.chooseUseTarget({name:'sha'}, false, 'nodistance');
+                    await player.chooseUseTarget({name:'sha'}, false, 'nodistance').forResult();
                 },
                 ai: {
                     threaten: 1.5,
@@ -434,15 +403,11 @@ export default function(){
                 check: function(event, player) {
                     return true;
                 },
-                content: function() {
-                    'step 0'
-                    player.chooseControl('2张', '3张', '4张').set('prompt', '请选择获得牌的数量').set('ai', function() { return 2; });
-                    'step 1'
-                    var cardCount = result.index + 2;
-                    event._cardCount = cardCount;
-                    player.chooseControl('2', '3', '4').set('prompt', '请选择伤害增加量').set('ai', function() { return 2; });
-                    'step 2'
-                    var dmgAdd = result.index + 2;
+                async content(event, trigger, player) {
+                    var cardResult = await player.chooseControl('2张', '3张', '4张').set('prompt', '请选择获得牌的数量').set('ai', function() { return 2; }).forResult();
+                    var cardCount = cardResult.index + 2;
+                    var damageResult = await player.chooseControl('2', '3', '4').set('prompt', '请选择伤害增加量').set('ai', function() { return 2; }).forResult();
+                    var dmgAdd = damageResult.index + 2;
                     var target = trigger.player;
                     // 先随机获得目标手牌装备
                     var cards = target.getCards('he').slice();
@@ -452,9 +417,9 @@ export default function(){
                         cards[i] = cards[j];
                         cards[j] = temp;
                     }
-                    var num = Math.min(event._cardCount, cards.length);
+                    var num = Math.min(cardCount, cards.length);
                     if (num > 0) {
-                        player.gain(cards.slice(0, num), target, 'giveAuto');
+                        await player.gain(cards.slice(0, num), target, 'giveAuto');
                     }
                     // 再增加伤害
                     trigger.num += dmgAdd;
@@ -2086,6 +2051,6 @@ export default function(){
     author: "nihility",
     diskURL: "",
     forumURL: "",
-    version: "1.5.10",
+    version: "1.6.0",
 },files:{"character":["mozarong.gif","jl_guansuo.jpg","reshen_dengai.jpg","jl_xiaoqiao.jpg","jl_caoying.jpg","jl_zhangqiying.jpg","jl_zhaoxiang.jpg","re_caoxian.jpg","jl_shen_zhaoyun.jpg","jl_nianshou.jpg"],"card":[],"skill":[],"audio":[]}} 
 };
