@@ -819,31 +819,36 @@ export default function(){
                     if (player._ying_yuansu_ing) return false;
                     return event.player && event.player.isIn() && event.num > 0;
                 },
-                content: function() {
-                    'step 0'
-                    player.chooseControl("水", "火", "风", "雷", "草", "冰", "岩").set("prompt", "元素：选择一种元素").set("ai", function() {
+                async content(event, trigger, player) {
+                    var result = await player.chooseControl("水", "火", "风", "雷", "草", "冰", "岩").set("prompt", "元素：选择一种元素").set("ai", function() {
                         return 0;
-                    });
-                    'step 1'
+                    }).forResult();
                     var choice = result.control;
-                    event.choice = choice;
                     if (choice == "水") {
                         trigger.cancel();
-                        trigger.player.recover(trigger.num);
+                        await trigger.player.recover(trigger.num);
                         player.logSkill("ying_yuansu", trigger.player);
                     } else if (choice == "火") {
                         trigger.nature = "fire";
                         trigger.player.addMark("ying_huoyin", 1);
                         player.logSkill("ying_yuansu", trigger.player);
                     } else if (choice == "风") {
-                        player.chooseTarget("风：选择一名角色，将" + get.translation(trigger.player) + "插入到该角色之后", true).set("ai", function(target) {
+                        var targetResult = await player.chooseTarget("风：选择一名角色，将" + get.translation(trigger.player) + "插入到该角色之后", true).set("ai", function(target) {
                             return 0;
-                        });
+                        }).forResult();
+                        if (targetResult.bool && targetResult.targets && targetResult.targets.length) {
+                            var insertAfter = targetResult.targets[0];
+                            game.swapSeat(trigger.player, insertAfter.next, false, true);
+                        }
                     } else if (choice == "雷") {
-                        player._ying_yuansu_ing = true;
                         trigger.cancel();
-                        trigger.player.damage(trigger.num * 2, "thunder");
                         player.logSkill("ying_yuansu", trigger.player);
+                        player._ying_yuansu_ing = true;
+                        try {
+                            await trigger.player.damage(trigger.num * 2, "thunder");
+                        } finally {
+                            player._ying_yuansu_ing = false;
+                        }
                     } else if (choice == "草") {
                         trigger.player.addMark("ying_baozi", 1);
                         player.logSkill("ying_yuansu", trigger.player);
@@ -852,19 +857,11 @@ export default function(){
                         if (!trigger.player.countMark("ying_han")) trigger.player.addMark("ying_han", 1);
                         player.logSkill("ying_yuansu", trigger.player);
                     } else if (choice == "岩") {
-                        if (trigger.player.hujia > 0) trigger.player.changeHujia(-trigger.player.hujia);
+                        if (trigger.player.hujia > 0) await trigger.player.changeHujia(-trigger.player.hujia);
                         var eq = trigger.player.getCards("e");
-                        if (eq.length) trigger.player.discard(eq);
+                        if (eq.length) await trigger.player.discard(eq);
                         player.logSkill("ying_yuansu", trigger.player);
                     }
-                    'step 2'
-                    if (event.choice == "风") {
-                        if (result.bool && result.targets && result.targets.length) {
-                            var insertAfter = result.targets[0];
-                            game.swapSeat(trigger.player, insertAfter.next, false, true);
-                        }
-                    }
-                    player._ying_yuansu_ing = false;
                 },
                 group: ["ying_yuansu_huoyin","ying_yuansu_baozi","ying_yuansu_baozi_clear"],
                 "skill_id": "ying_yuansu",
@@ -1285,6 +1282,6 @@ export default function(){
     author: "nihility",
     diskURL: "",
     forumURL: "",
-    version: "1.5.0",
+    version: "1.5.1",
 },files:{"character":["hutao.jpg","ying_gs.jpg","shen_xiao.jpg","zhongli.jpg","qiuqiuren.jpg"],"card":[],"skill":[],"audio":[]}} 
 };
