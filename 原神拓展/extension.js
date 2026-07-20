@@ -1085,43 +1085,36 @@ export default function(){
                 trigger: {
                     player: "dyingBegin",
                 },
+                prompt: "是否发动【深渊】，增加体力上限、削减其他角色并化身【公主】？",
+                check: function(event, player) {
+                    return true;
+                },
                 filter: function(event, player) {
                     return !player.storage.ying_shenyuan;
                 },
                 init: function(player, skill) {
                     player.storage[skill] = false;
                 },
-                content: function() {
-                    "step 0"
-                    var isDying = _status.event.getParent().name == "dying";
-                    if (isDying) {
-                        player.chooseBool("是否发动【深渊】？").set("ai", function() { return true; });
-                    } else {
-                        event._isPhaseUse = true;
-                    }
-                    "step 1"
-                    if (!event._isPhaseUse && !result.bool) {
-                        event.finish();
-                        return;
-                    }
+                async content(event, trigger, player) {
                     player.awakenSkill("ying_shenyuan");
                     player.logSkill("ying_shenyuan");
                     var others = game.filterPlayer(function(current) {
                         return current != player && current.isIn();
-                    });
-                    player.gainMaxHp(others.length);
-                    for (var i = 0; i < others.length; i++) {
-                        others[i].loseMaxHp(1);
+                    }).sortBySeat();
+                    await player.gainMaxHp(others.length);
+                    for (var target of others) {
+                        if (target.isIn()) await target.loseMaxHp(1);
                     }
-                    for (var i = 0; i < others.length; i++) {
-                        var ocards = others[i].getCards("hej");
+                    for (var target of others) {
+                        if (!target.isIn()) continue;
+                        var ocards = target.getCards("hej");
                         if (ocards.length) {
-                            others[i].discard(ocards);
+                            await target.discard(ocards);
                         }
                     }
-                    "step 2"
-                    player.recover(player.maxHp - player.hp);
-                    "step 3"
+                    if (player.maxHp > player.hp) {
+                        await player.recover(player.maxHp - player.hp);
+                    }
                     player.removeSkill("ying_yuansu");
                     player.addSkill("ying_shenyuanliliang");
                 },
@@ -1268,6 +1261,6 @@ export default function(){
     author: "nihility",
     diskURL: "",
     forumURL: "",
-    version: "1.5.2",
+    version: "1.5.3",
 },files:{"character":["hutao.jpg","ying_gs.jpg","shen_xiao.jpg","zhongli.jpg","qiuqiuren.jpg"],"card":[],"skill":[],"audio":[]}} 
 };
