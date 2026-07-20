@@ -1171,24 +1171,23 @@ export default function(){
                     if (player._ying_extraing) return false;
                     return event.player && event.player.isIn() && event.num > 0;
                 },
-                content: function() {
-                    "step 0"
-                    player.chooseTarget([1, Infinity], "深渊力量：对任意名目标造成" + trigger.num + "点伤害").set("ai", function(target) {
+                async content(event, trigger, player) {
+                    var result = await player.chooseTarget([1, Infinity], "深渊力量：对任意名目标造成" + trigger.num + "点伤害").set("ai", function(target) {
                         return get.damageEffect(target, player, player);
-                    });
-                    "step 1"
-                    if (result.bool && result.targets && result.targets.length) {
-                        player._ying_extraing = true;
-                        player.logSkill("ying_shenyuanliliang_extra");
-                        for (var i = 0; i < result.targets.length; i++) {
-                            if (result.targets[i].isIn()) {
-                                result.targets[i].damage(trigger.num, player);
+                    }).forResult();
+                    if (!result.bool || !result.targets || !result.targets.length) return;
+                    var targets = result.targets.sortBySeat();
+                    player._ying_extraing = true;
+                    player.logSkill("ying_shenyuanliliang_extra");
+                    try {
+                        for (var target of targets) {
+                            if (target.isIn()) {
+                                await target.damage(trigger.num, player);
                             }
                         }
+                    } finally {
+                        player._ying_extraing = false;
                     }
-                    game.delayx();
-                    "step 2"
-                    player._ying_extraing = false;
                 },
                 "skill_id": "ying_shenyuanliliang_extra",
                 "_priority": 0,
@@ -1261,6 +1260,6 @@ export default function(){
     author: "nihility",
     diskURL: "",
     forumURL: "",
-    version: "1.5.3",
+    version: "1.5.4",
 },files:{"character":["hutao.jpg","ying_gs.jpg","shen_xiao.jpg","zhongli.jpg","qiuqiuren.jpg"],"card":[],"skill":[],"audio":[]}} 
 };
