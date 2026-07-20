@@ -433,37 +433,23 @@ export default function(){
                 filter: function(event, player) {
                     return player.countMark("dl_xiuluo") > 0;
                 },
-                content: function() {
-                    'step 0'
-                    player.chooseTarget([1, Infinity], "修罗之瞳：选择任意名其他角色", function(card, player, target) {
+                async content(event, trigger, player) {
+                    var result = await player.chooseTarget([1, Infinity], "修罗之瞳：选择任意名其他角色", function(card, player, target) {
                         return target != player;
                     }, true).set("ai", function(target) {
                         return -get.attitude(_status.event.player, target);
-                    });
-                    'step 1'
-                    if (result.bool) {
-                        event.targets = result.targets;
-                        event.targets.sortBySeat();
-                        event._index = 0;
-                        player.removeMark("dl_xiuluo", 1);
-                        player.logSkill("dl_xiuluo", event.targets);
-                    } else {
-                        event.finish();
-                    }
-                    'step 2'
-                    if (event._index >= event.targets.length) {
-                        player.addTempSkill("dl_xiuluo_buff", { player: "phaseBegin" });
-                        event.finish();
-                    } else {
-                        event._target = event.targets[event._index];
-                        if (event._target.isIn()) {
-                            if (event._target.hp > 1) event._target.loseHp(event._target.hp - 1);
-                            event._target.addSkill("dl_xiuluo_mark");
+                    }).forResult();
+                    if (!result.bool) return;
+                    var targets = result.targets.sortBySeat();
+                    player.removeMark("dl_xiuluo", 1);
+                    player.logSkill("dl_xiuluo", targets);
+                    for (var target of targets) {
+                        if (target.isIn()) {
+                            target.addSkill("dl_xiuluo_mark");
+                            if (target.hp > 1) await target.loseHp(target.hp - 1);
                         }
                     }
-                    'step 3'
-                    event._index++;
-                    event.goto(2);
+                    player.addTempSkill("dl_xiuluo_buff", { player: "phaseBegin" });
                 },
                 ai: {
                     order: 10,
@@ -613,6 +599,6 @@ export default function(){
     author: "nihility",
     diskURL: "",
     forumURL: "",
-    version: "1.3.0",
+    version: "1.3.1",
 },files:{"character":["dl_huoyuhao.jpg"],"card":[],"skill":[],"audio":[]}} 
 };
