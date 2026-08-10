@@ -15,7 +15,7 @@ export default function(){
         character: {
             "mozarong": {
                 sex: "male",
-                group: "",
+                group: "devil",
                 hp: 4,
                 maxHp: 4,
                 hujia: 0,
@@ -2051,6 +2051,6 @@ export default function(){
     author: "nihility",
     diskURL: "",
     forumURL: "",
-    version: "1.6.0",
+    version: "1.6.1",
 },files:{"character":["mozarong.gif","jl_guansuo.jpg","reshen_dengai.jpg","jl_xiaoqiao.jpg","jl_caoying.jpg","jl_zhangqiying.jpg","jl_zhaoxiang.jpg","re_caoxian.jpg","jl_shen_zhaoyun.jpg","jl_nianshou.jpg"],"card":[],"skill":[],"audio":[]}} 
 };
